@@ -1,0 +1,25 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --purple: #534AB7;
+  --purple-light: #7F77DD;
+  --purple-pale: #EEEDFE;
+  --bg: #0D0C1A;
+  --bg2: #13112A;
+  --bg3: #1A1735;
+  --surface: #211E42;
+  --border: rgba(255,255,255,0.08);
+  --text: #F0EFF8;
+  --text-soft: #9B98BE;
+  --text-muted: #5C5A80;
+  --green: #2ECC8A;
+  --red: #FF6B6B;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
