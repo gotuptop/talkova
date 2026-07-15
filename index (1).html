@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Talkova — AI English Tutor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --purple:#534AB7;--purple-light:#7F77DD;--purple-pale:#EEEDFE;
+    --bg:#0D0C1A;--bg2:#13112A;--bg3:#1A1735;--surface:#211E42;
+    --border:rgba(255,255,255,0.08);--text:#F0EFF8;--text-soft:#9B98BE;
+    --text-muted:#5C5A80;--green:#2ECC8A;--red:#FF6B6B;
+  }
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--text)}
+  .logo span{color:var(--purple-light)}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 2rem;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;background:rgba(13,12,26,0.9);backdrop-filter:blur(12px)}
+  .btn-g{font-size:14px;color:var(--text-soft);background:none;border:1px solid var(--border);padding:8px 18px;border-radius:999px;cursor:pointer;transition:all .2s}
+  .btn-g:hover{border-color:var(--purple-light);color:var(--text)}
+  .btn-p{font-size:14px;font-weight:600;background:var(--purple);color:white;border:none;padding:9px 20px;border-radius:999px;cursor:pointer}
+  .btn-p:hover{background:var(--purple-light)}
+  .screen{display:none}.screen.active{display:block}
+
+  /* LANDING */
+  .hero{text-align:center;padding:5rem 1.5rem 3rem;position:relative}
+  .hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(ellipse,rgba(83,74,183,.18) 0%,transparent 70%);pointer-events:none}
+  .eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--purple-light);background:rgba(83,74,183,.15);border:1px solid rgba(83,74,183,.3);padding:5px 14px;border-radius:999px;margin-bottom:1.5rem;letter-spacing:.04em;text-transform:uppercase}
+  .pulse{width:6px;height:6px;border-radius:50%;background:var(--purple-light);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(36px,6vw,64px);line-height:1.05;margin-bottom:1.2rem;letter-spacing:-.02em}
+  h1 em{font-style:normal;color:var(--purple-light)}
+  .hsub{font-size:17px;color:var(--text-soft);max-width:440px;margin:0 auto 2.5rem;line-height:1.7;font-weight:300}
+  .wlf{display:flex;gap:8px;justify-content:center;max-width:400px;margin:0 auto 1rem;flex-wrap:wrap}
+  .wli{flex:1;min-width:200px;padding:13px 16px;font-size:14px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:12px;outline:none}
+  .wli:focus{border-color:var(--purple)}.wli::placeholder{color:var(--text-muted)}
+  .btn-cta{padding:13px 24px;font-size:14px;font-weight:600;background:var(--purple);color:white;border:none;border-radius:12px;cursor:pointer}
+  .hint{font-size:12px;color:var(--text-muted)}
+  .ts{padding:2rem 1.5rem;text-align:center}
+  .slabel{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.2rem}
+  .trow{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:2rem}
+  .tc{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.2rem 1rem;width:155px;cursor:pointer;transition:all .2s;text-align:center}
+  .tc:hover,.tc.sel{border-color:var(--purple);background:var(--bg3);transform:translateY(-2px)}
+  .tav{width:64px;height:64px;border-radius:50%;margin:0 auto 10px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);border:2px solid var(--border)}
+  .tc.sel .tav{border-color:var(--purple)}
+  .tn{font-size:15px;font-weight:600;margin-bottom:3px}.td{font-size:11px;color:var(--text-soft);line-height:1.4}
+  .dbox{max-width:460px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+  .dhdr{padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-soft)}
+  .ddot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+  .dmsgs{padding:1.2rem;display:flex;flex-direction:column;gap:14px}
+  .dm{display:flex;gap:10px;align-items:flex-start}.dm.u{flex-direction:row-reverse}
+  .dav{width:30px;height:30px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--purple-light);flex-shrink:0}
+  .db{font-size:13px;line-height:1.6;padding:10px 14px;border-radius:14px;max-width:78%}
+  .db.ai{background:var(--surface);color:var(--text);border-radius:4px 14px 14px 14px}
+  .db.usr{background:var(--purple);color:white;border-radius:14px 4px 14px 14px}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;margin:2px 3px 2px 0}
+  .tw{background:rgba(255,107,107,.15);color:var(--red)}.tr{background:rgba(46,204,138,.15);color:var(--green)}
+  .bstart{display:block;width:calc(100% - 2.4rem);margin:0 1.2rem 1.2rem;padding:13px;font-size:14px;font-weight:600;background:var(--purple);color:white;border:none;border-radius:12px;cursor:pointer}
+  .feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;padding:2rem 1.5rem 5rem;max-width:900px;margin:0 auto}
+  .feat{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem}
+  .fi{font-size:24px;margin-bottom:10px}.ft{font-size:14px;font-weight:600;margin-bottom:5px}
+  .fd{font-size:13px;color:var(--text-soft);line-height:1.5}
+
+  /* APP */
+  #app{max-width:480px;margin:0 auto;height:calc(100vh - 65px);display:flex;flex-direction:column}
+  .ahdr{padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+  .back{background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:20px;line-height:1}
+  .ainfo{display:flex;align-items:center;gap:10px;flex:1}
+  .acirc{width:38px;height:38px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);flex-shrink:0}
+  .aname{font-size:15px;font-weight:600}.astat{font-size:12px;color:var(--green)}
+  .badge{font-size:11px;background:rgba(83,74,183,.2);color:var(--purple-light);padding:3px 10px;border-radius:999px}
+  .avzone{background:var(--bg2);border-bottom:1px solid var(--border);padding:1.2rem;display:flex;justify-content:center;flex-shrink:0}
+  .avframe{width:100px;height:100px;border-radius:50%;border:3px solid var(--purple);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);transition:box-shadow .3s}
+  .avframe.spk{box-shadow:0 0 0 8px rgba(83,74,183,.25),0 0 0 16px rgba(83,74,183,.1)}
+  .carea{flex:1;overflow-y:auto;padding:1.2rem;display:flex;flex-direction:column;gap:12px}
+  .carea::-webkit-scrollbar{width:3px}.carea::-webkit-scrollbar-thumb{background:var(--surface);border-radius:4px}
+  .msg{display:flex;gap:10px;align-items:flex-start}.msg.u{flex-direction:row-reverse}
+  .mav{width:30px;height:30px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--purple-light);flex-shrink:0}
+  .bbl{font-size:13px;line-height:1.6;padding:10px 14px;border-radius:14px;max-width:80%;white-space:pre-wrap}
+  .bbl.ai{background:var(--surface);color:var(--text);border-radius:4px 14px 14px 14px}
+  .bbl.usr{background:var(--purple);color:white;border-radius:14px 4px 14px 14px}
+  .typing{display:flex;gap:4px;align-items:center;padding:10px 14px;background:var(--surface);border-radius:4px 14px 14px 14px;width:fit-content}
+  .tdot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);animation:td 1.2s ease-in-out infinite}
+  .tdot:nth-child(2){animation-delay:.2s}.tdot:nth-child(3){animation-delay:.4s}
+  @keyframes td{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+  .iarea{padding:1rem 1.2rem;border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-end;flex-shrink:0;background:var(--bg)}
+  .cinput{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text);resize:none;outline:none;max-height:100px;line-height:1.5}
+  .cinput:focus{border-color:var(--purple)}.cinput::placeholder{color:var(--text-muted)}
+  .sbtn{width:40px;height:40px;border-radius:50%;background:var(--purple);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .sbtn:hover{background:var(--purple-light)}
+  .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--green);color:white;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:500;white-space:nowrap;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">talk<span>ova</span></div>
+  <div style="display:flex;gap:12px">
+    <button class="btn-g" onclick="showApp()">Try free</button>
+    <button class="btn-p" onclick="showApp()">Start learning</button>
+  </div>
+</nav>
+
+<!-- LANDING -->
+<div id="landing" class="screen active">
+  <section class="hero">
+    <div class="eyebrow"><div class="pulse"></div>AI-powered · Available 24/7</div>
+    <h1>Speak English<br>with <em>real confidence</em></h1>
+    <p class="hsub">Practice natural conversations with an AI tutor that corrects you gently, explains why, and adapts to your level — in Spanish or English.</p>
+    <div class="wlf">
+      <input class="wli" type="email" id="emailInput" placeholder="your@email.com"/>
+      <button class="btn-cta" onclick="joinWaitlist()">Get early access</button>
+    </div>
+    <p class="hint">Free to start — no credit card needed</p>
+  </section>
+
+  <section class="ts">
+    <p class="slabel">Choose your tutor</p>
+    <div class="trow">
+      <div class="tc sel" onclick="selectTutor(this,'Maya','M','Warm & bilingual. Grew up speaking Spanish, now teaches English.','Warm & bilingual. Grew up speaking Spanish.')">
+        <div class="tav">M</div><div class="tn">Maya</div><div class="td">Warm & bilingual. Grew up speaking Spanish.</div>
+      </div>
+      <div class="tc" onclick="selectTutor(this,'Leo','L','Cool & energetic. Makes every lesson feel like a real conversation.','Cool & energetic. Lessons that feel like a hang.')">
+        <div class="tav">L</div><div class="tn">Leo</div><div class="td">Cool & energetic. Lessons that feel like a hang.</div>
+      </div>
+      <div class="tc" onclick="selectTutor(this,'Nova','N','Patient & clear. Perfect for learners starting from zero.','Patient & clear. Perfect for total beginners.')">
+        <div class="tav">N</div><div class="tn">Nova</div><div class="td">Patient & clear. Perfect for total beginners.</div>
+      </div>
+    </div>
+    <div class="dbox">
+      <div class="dhdr"><div class="ddot"></div><span id="demoLabel">Live preview — Maya is online</span></div>
+      <div class="dmsgs">
+        <div class="dm"><div class="dav" id="demoAv">M</div><div class="db ai">Hi! I'm <span id="demoName">Maya</span> 👋 Let's practice ordering at a restaurant. You go first!</div></div>
+        <div class="dm u"><div class="dav" style="background:var(--purple);color:white">U</div><div class="db usr">I want order a coffee please.</div></div>
+        <div class="dm"><div class="dav" id="demoAv2">M</div><div class="db ai">Almost perfect! <span class="tag tw">I want order</span>→<span class="tag tr">I'd like to order ✓</span> We add "to" after "want." Try again!</div></div>
+      </div>
+      <button class="bstart" onclick="showApp()">Start your free session →</button>
+    </div>
+  </section>
+
+  <div class="feats">
+    <div class="feat"><div class="fi">💬</div><div class="ft">Real conversations</div><div class="fd">Practice everyday situations with a patient AI partner.</div></div>
+    <div class="feat"><div class="fi">✨</div><div class="ft">Instant corrections</div><div class="fd">Learn from mistakes without embarrassment.</div></div>
+    <div class="feat"><div class="fi">🌎</div><div class="ft">Built for Latinos</div><div class="fd">Switch to Spanish whenever you need to.</div></div>
+    <div class="feat"><div class="fi">📈</div><div class="ft">Track your growth</div><div class="fd">See your progress week by week.</div></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="screen">
+  <div class="ahdr">
+    <button class="back" onclick="showLanding()">←</button>
+    <div class="ainfo">
+      <div class="acirc" id="appAv">M</div>
+      <div><div class="aname" id="appName">Maya</div><div class="astat">● Online</div></div>
+    </div>
+    <span class="badge">Beginner</span>
+  </div>
+  <div class="avzone">
+    <div class="avframe" id="avFrame">M</div>
+  </div>
+  <div class="carea" id="chatArea"></div>
+  <div class="iarea">
+    <textarea class="cinput" id="chatInput" rows="1" placeholder="Type in English or Spanish..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button class="sbtn" onclick="sendMessage()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let tutor = { name:'Maya', initial:'M', desc:'Warm & bilingual. Grew up speaking Spanish, now teaches English.' };
+  let history = [];
+  let loading = false;
+
+  function selectTutor(card, name, initial, desc, tagline) {
+    document.querySelectorAll('.tc').forEach(c => c.classList.remove('sel'));
+    card.classList.add('sel');
+    tutor = { name, initial, desc };
+    document.getElementById('demoLabel').textContent = `Live preview — ${name} is online`;
+    document.getElementById('demoName').textContent = name;
+    document.getElementById('demoAv').textContent = initial;
+    document.getElementById('demoAv2').textContent = initial;
+  }
+
+  function showApp() {
+    document.getElementById('landing').classList.remove('active');
+    document.getElementById('app').classList.add('active');
+    document.getElementById('appAv').textContent = tutor.initial;
+    document.getElementById('appName').textContent = tutor.name;
+    document.getElementById('avFrame').textContent = tutor.initial;
+    if (history.length === 0) {
+      const greeting = `Hi! I'm ${tutor.name} 👋 I'm your English tutor at Talkova. We can talk in English or Spanish — whatever feels comfortable. What would you like to practice today?`;
+      addMessage('ai', greeting);
+      history.push({ role:'assistant', content: greeting });
+    }
+  }
+
+  function showLanding() {
+    document.getElementById('app').classList.remove('active');
+    document.getElementById('landing').classList.add('active');
+  }
+
+  function joinWaitlist() {
+    const email = document.getElementById('emailInput').value.trim();
+    if (!email.includes('@')) { showToast('Please enter a valid email 📧'); return; }
+    showToast("¡You're on the list! We'll be in touch 🎉");
+    document.getElementById('emailInput').value = '';
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function addMessage(role, text) {
+    const area = document.getElementById('chatArea');
+    const div = document.createElement('div');
+    div.className = `msg${role==='user'?' u':''}`;
+    const av = document.createElement('div');
+    av.className = 'mav';
+    if (role==='user') { av.style.background='var(--purple)'; av.style.color='white'; av.textContent='U'; }
+    else { av.textContent = tutor.initial; }
+    const bbl = document.createElement('div');
+    bbl.className = `bbl ${role==='user'?'usr':'ai'}`;
+    bbl.textContent = text;
+    div.appendChild(av); div.appendChild(bbl);
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+    if (role==='ai') {
+      const f = document.getElementById('avFrame');
+      f.classList.add('spk');
+      setTimeout(() => f.classList.remove('spk'), 2000);
+    }
+  }
+
+  function addTyping() {
+    const area = document.getElementById('chatArea');
+    const div = document.createElement('div');
+    div.className='msg'; div.id='typing';
+    const av = document.createElement('div');
+    av.className='mav'; av.textContent=tutor.initial;
+    const t = document.createElement('div');
+    t.className='typing';
+    t.innerHTML='<div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>';
+    div.appendChild(av); div.appendChild(t);
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typing');
+    if (t) t.remove();
+  }
+
+  async function sendMessage() {
+    if (loading) return;
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = ''; input.style.height = 'auto';
+    addMessage('user', text);
+    history.push({ role:'user', content: text });
+    loading = true; addTyping();
+    try {
+      const res = await fetch('/api/chat', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ messages: history, tutorName: tutor.name, tutorDesc: tutor.desc })
+      });
+      const data = await res.json();
+      removeTyping();
+      addMessage('ai', data.reply);
+      history.push({ role:'assistant', content: data.reply });
+    } catch {
+      removeTyping();
+      addMessage('ai', 'Oops! Something went wrong. Try again.');
+    }
+    loading = false;
+  }
+
+  function handleKey(e) {
+    if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height='auto';
+    el.style.height = Math.min(el.scrollHeight,100)+'px';
+  }
+</script>
+</body>
+</html>
