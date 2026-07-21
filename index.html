@@ -22,8 +22,6 @@
   .btn-p{font-size:14px;font-weight:600;background:var(--purple);color:white;border:none;padding:9px 20px;border-radius:999px;cursor:pointer}
   .btn-p:hover{background:var(--purple-light)}
   .screen{display:none}.screen.active{display:block}
-
-  /* LANDING */
   .hero{text-align:center;padding:5rem 1.5rem 3rem;position:relative}
   .hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(ellipse,rgba(83,74,183,.18) 0%,transparent 70%);pointer-events:none}
   .eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--purple-light);background:rgba(83,74,183,.15);border:1px solid rgba(83,74,183,.3);padding:5px 14px;border-radius:999px;margin-bottom:1.5rem;letter-spacing:.04em;text-transform:uppercase}
@@ -61,8 +59,6 @@
   .feat{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem}
   .fi{font-size:24px;margin-bottom:10px}.ft{font-size:14px;font-weight:600;margin-bottom:5px}
   .fd{font-size:13px;color:var(--text-soft);line-height:1.5}
-
-  /* APP */
   #app{max-width:480px;margin:0 auto;height:calc(100vh - 65px);display:flex;flex-direction:column}
   .ahdr{padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
   .back{background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:20px;line-height:1}
@@ -103,7 +99,6 @@
   </div>
 </nav>
 
-<!-- LANDING -->
 <div id="landing" class="screen active">
   <section class="hero">
     <div class="eyebrow"><div class="pulse"></div>AI-powered · Available 24/7</div>
@@ -148,7 +143,6 @@
   </div>
 </div>
 
-<!-- APP -->
 <div id="app" class="screen">
   <div class="ahdr">
     <button class="back" onclick="showLanding()">←</button>
@@ -275,8 +269,8 @@
       });
       const data = await res.json();
       removeTyping();
-      addMessage('ai', data.reply);
-      history.push({ role:'assistant', content: data.reply });
+      addMessage('ai', data.content);
+      history.push({ role:'assistant', content: data.content });
     } catch {
       removeTyping();
       addMessage('ai', 'Oops! Something went wrong. Try again.');
