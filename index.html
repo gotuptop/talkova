@@ -211,18 +211,17 @@
 
   function getBestVoice(tutorName) {
     const voices = window.speechSynthesis.getVoices();
-    // Per-tutor voice preferences
+    // Per-tutor voice preferences — optimized for iOS/iPhone + Windows
     const prefs = {
-      Maya: ['Samantha','Google US English','Microsoft Zira','Zira','Karen'],
-      Leo:  ['Alex','Google UK English Male','Microsoft David','David','Daniel','Fred'],
-      Nova: ['Microsoft Eva','Eva','Google US English','Samantha','Victoria']
+      Maya: ['Samantha','Google US English','Microsoft Zira','Zira','Nicky'],
+      Leo:  ['Alex','Google UK English Male','Microsoft David','David','Daniel','Fred','Tom'],
+      Nova: ['Karen','Moira','Tessa','Google UK English Female','Microsoft Hazel','Hazel']
     };
     const list = prefs[tutorName] || prefs.Maya;
     for (const name of list) {
       const v = voices.find(v => v.name.includes(name));
       if (v) return v;
     }
-    // Fallback by gender
     const isMale = tutorName === 'Leo';
     return voices.find(v => v.lang.startsWith('en') && (isMale ? v.name.toLowerCase().includes('male') : !v.name.toLowerCase().includes('male')))
       || voices.find(v => v.lang.startsWith('en'))
@@ -333,6 +332,8 @@
     document.querySelectorAll('.tc').forEach(c => c.classList.remove('sel'));
     card.classList.add('sel');
     tutor = { name, initial, desc };
+    history = []; // Reset conversation so new tutor greets fresh
+    document.getElementById('chatArea') && (document.getElementById('chatArea').innerHTML = '');
     document.getElementById('demoLabel').textContent = `Live preview — ${name} is online`;
     document.getElementById('demoName').textContent = name;
     document.getElementById('demoAv').textContent = initial;
@@ -441,4 +442,4 @@
   window.speechSynthesis.onvoiceschanged = () => {};
 </script>
 </body>
-</htm
+</html>
