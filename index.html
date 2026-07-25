@@ -209,16 +209,24 @@
 
   const tutorVoiceMap = { Maya: 'female', Leo: 'male', Nova: 'female' };
 
-  function getBestVoice(gender) {
+  function getBestVoice(tutorName) {
     const voices = window.speechSynthesis.getVoices();
-    const pref = gender === 'female'
-      ? ['Samantha','Google US English','Microsoft Zira','Karen','Victoria','Moira']
-      : ['Alex','Google UK English Male','Microsoft David','Daniel','Fred'];
-    for (const name of pref) {
+    // Per-tutor voice preferences
+    const prefs = {
+      Maya: ['Samantha','Google US English','Microsoft Zira','Zira','Karen'],
+      Leo:  ['Alex','Google UK English Male','Microsoft David','David','Daniel','Fred'],
+      Nova: ['Microsoft Eva','Eva','Google US English','Samantha','Victoria']
+    };
+    const list = prefs[tutorName] || prefs.Maya;
+    for (const name of list) {
       const v = voices.find(v => v.name.includes(name));
       if (v) return v;
     }
-    return voices.find(v => v.lang.startsWith('en')) || voices[0];
+    // Fallback by gender
+    const isMale = tutorName === 'Leo';
+    return voices.find(v => v.lang.startsWith('en') && (isMale ? v.name.toLowerCase().includes('male') : !v.name.toLowerCase().includes('male')))
+      || voices.find(v => v.lang.startsWith('en'))
+      || voices[0];
   }
 
   function speak(text) {
@@ -228,7 +236,7 @@
     utter.volume = currentVolume;
     utter.rate = 0.75;
     utter.pitch = tutor.name === 'Leo' ? 0.90 : tutor.name === 'Nova' ? 0.95 : 1.0;
-    utter.voice = getBestVoice(tutorVoiceMap[tutor.name] || 'female');
+    utter.voice = getBestVoice(tutor.name);
     utter.onstart = () => {
       document.getElementById('avFrame').classList.add('spk');
       document.getElementById('appStat').textContent = '● Speaking...';
@@ -433,4 +441,4 @@
   window.speechSynthesis.onvoiceschanged = () => {};
 </script>
 </body>
-</html>
+</htm
