@@ -226,8 +226,8 @@
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.volume = currentVolume;
-    utter.rate = 0.92;
-    utter.pitch = tutor.name === 'Leo' ? 0.85 : 1.05;
+    utter.rate = 0.75;
+    utter.pitch = tutor.name === 'Leo' ? 0.90 : tutor.name === 'Nova' ? 0.95 : 1.0;
     utter.voice = getBestVoice(tutorVoiceMap[tutor.name] || 'female');
     utter.onstart = () => {
       document.getElementById('avFrame').classList.add('spk');
