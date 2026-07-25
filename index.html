@@ -207,53 +207,68 @@
   let currentVolume = 0.85;
   let micLang = 'en-US'; // Default: student speaks English for evaluation
 
-  const tutorVoiceMap = { Maya: 'female', Leo: 'male', Nova: 'female' };
+  let currentAudio = null;
 
-  function getBestVoice(tutorName) {
-    const voices = window.speechSynthesis.getVoices();
-    // Per-tutor voice preferences — optimized for iOS/iPhone + Windows
-    const prefs = {
-      Maya: ['Samantha','Google US English','Microsoft Zira','Zira','Nicky'],
-      Leo:  ['Alex','Google UK English Male','Microsoft David','David','Daniel','Fred','Tom'],
-      Nova: ['Karen','Moira','Tessa','Google UK English Female','Microsoft Hazel','Hazel']
-    };
-    const list = prefs[tutorName] || prefs.Maya;
-    for (const name of list) {
-      const v = voices.find(v => v.name.includes(name));
-      if (v) return v;
-    }
-    const isMale = tutorName === 'Leo';
-    return voices.find(v => v.lang.startsWith('en') && (isMale ? v.name.toLowerCase().includes('male') : !v.name.toLowerCase().includes('male')))
-      || voices.find(v => v.lang.startsWith('en'))
-      || voices[0];
-  }
-
-  function speak(text) {
+  async function speak(text) {
     if (!speakerOn) return;
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.volume = currentVolume;
-    utter.rate = 0.75;
-    utter.pitch = tutor.name === 'Leo' ? 0.90 : tutor.name === 'Nova' ? 0.95 : 1.0;
-    utter.voice = getBestVoice(tutor.name);
-    utter.onstart = () => {
-      document.getElementById('avFrame').classList.add('spk');
-      document.getElementById('appStat').textContent = '● Speaking...';
-      document.getElementById('appStat').style.color = 'var(--purple-light)';
-    };
-    utter.onend = () => {
-      document.getElementById('avFrame').classList.remove('spk');
-      document.getElementById('appStat').textContent = '● Online';
-      document.getElementById('appStat').style.color = 'var(--green)';
-    };
-    window.speechSynthesis.speak(utter);
+    // Stop any current audio
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+    document.getElementById('avFrame').classList.add('spk');
+    document.getElementById('appStat').textContent = '● Speaking...';
+    document.getElementById('appStat').style.color = 'var(--purple-light)';
+
+    try {
+      const res = await fetch('/.netlify/functions/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tts: text, tutorName: tutor.name })
+      });
+      const data = await res.json();
+
+      if (data.audio) {
+        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.volume = currentVolume;
+        currentAudio = audio;
+        audio.onended = () => {
+          document.getElementById('avFrame').classList.remove('spk');
+          document.getElementById('appStat').textContent = '● Online';
+          document.getElementById('appStat').style.color = 'var(--green)';
+          URL.revokeObjectURL(audioUrl);
+        };
+        audio.play();
+      } else {
+        throw new Error('No audio');
+      }
+    } catch (e) {
+      // Fallback to Web Speech API
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.volume = currentVolume;
+      utter.rate = 0.75;
+      utter.onend = () => {
+        document.getElementById('avFrame').classList.remove('spk');
+        document.getElementById('appStat').textContent = '● Online';
+        document.getElementById('appStat').style.color = 'var(--green)';
+      };
+      window.speechSynthesis.speak(utter);
+    }
   }
 
   function toggleSpeaker() {
     speakerOn = !speakerOn;
     const btn = document.getElementById('spkToggle');
     if (speakerOn) { btn.classList.add('on'); btn.textContent = '🔊'; }
-    else { btn.classList.remove('on'); btn.textContent = '🔇'; window.speechSynthesis.cancel(); }
+    else {
+      btn.classList.remove('on'); btn.textContent = '🔇';
+      if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+      window.speechSynthesis.cancel();
+      document.getElementById('avFrame').classList.remove('spk');
+      document.getElementById('appStat').textContent = '● Online';
+      document.getElementById('appStat').style.color = 'var(--green)';
+    }
   }
 
   function updateVolume(val) { currentVolume = parseFloat(val); }
@@ -439,7 +454,7 @@
     el.style.height = Math.min(el.scrollHeight,100)+'px';
   }
 
-  window.speechSynthesis.onvoiceschanged = () => {};
+
 </script>
 </body>
 </html>
