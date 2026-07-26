@@ -5,6 +5,12 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Talkova — AI English Tutor</title>
+<link rel="manifest" href="/manifest.json"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Talkova"/>
+<link rel="apple-touch-icon" href="https://res.cloudinary.com/fajdj3ej/image/upload/v1785106081/preview_lynt5h.webp"/>
+<meta name="theme-color" content="#534AB7"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
   // --- Supabase Auth ---
@@ -109,6 +115,21 @@
   // Init on load
   window.addEventListener('load', initSupabase);
 
+
+  // Register Service Worker for PWA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .catch(err => console.log('SW registration failed:', err));
+    });
+  }
+
+  // Fix iOS audio - unlock audio context on first touch
+  document.addEventListener('touchstart', function unlockAudio() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ctx.resume();
+    document.removeEventListener('touchstart', unlockAudio);
+  }, { once: true });
 </script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -732,6 +753,21 @@
   // Init on load
   window.addEventListener('load', initSupabase);
 
+
+  // Register Service Worker for PWA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .catch(err => console.log('SW registration failed:', err));
+    });
+  }
+
+  // Fix iOS audio - unlock audio context on first touch
+  document.addEventListener('touchstart', function unlockAudio() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ctx.resume();
+    document.removeEventListener('touchstart', unlockAudio);
+  }, { once: true });
 </script>
 
 <!-- Auth Screen -->
