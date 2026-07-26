@@ -6,6 +6,110 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Talkova — AI English Tutor</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+  // --- Supabase Auth ---
+  const SUPABASE_URL = 'https://gobrwixmtmvcfqyrudih.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_q5EU45ugdQK-qISquQUOPA_9ZKxaFgg';
+  
+  let supabaseClient = null;
+  let currentUser = null;
+
+  async function initSupabase() {
+    try {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) {
+        currentUser = session.user;
+        showLoggedIn();
+      } else {
+        document.getElementById('authScreen').style.display = 'flex';
+      }
+    } catch(e) {
+      console.error('Supabase init error:', e);
+      // If Supabase not configured, hide auth screen and proceed
+      document.getElementById('authScreen').style.display = 'none';
+    }
+  }
+
+  function showLoggedIn() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('navActions').style.display = 'none';
+    document.getElementById('navUser').style.display = 'flex';
+    const initial = (currentUser.user_metadata?.name || currentUser.email || 'U')[0].toUpperCase();
+    document.getElementById('navUserAvatar').textContent = initial;
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+    document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+    document.getElementById('authErr').textContent = '';
+  }
+
+  async function handleLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) { document.getElementById('authErr').textContent = 'Please fill in all fields.'; return; }
+    const btn = document.querySelector('#loginForm .auth-btn');
+    btn.textContent = 'Signing in...'; btn.classList.add('auth-loading');
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    btn.textContent = 'Sign in →'; btn.classList.remove('auth-loading');
+    if (error) { document.getElementById('authErr').textContent = error.message; return; }
+    currentUser = data.user;
+    showLoggedIn();
+  }
+
+  async function handleRegister() {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    if (!name || !email || !password) { document.getElementById('authErr').textContent = 'Please fill in all fields.'; return; }
+    if (password.length < 6) { document.getElementById('authErr').textContent = 'Password must be at least 6 characters.'; return; }
+    const btn = document.querySelector('#registerForm .auth-btn');
+    btn.textContent = 'Creating account...'; btn.classList.add('auth-loading');
+    const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { name } } });
+    btn.textContent = 'Create account →'; btn.classList.remove('auth-loading');
+    if (error) { document.getElementById('authErr').textContent = error.message; return; }
+    currentUser = data.user;
+    // Save user to users table
+    await supabaseClient.from('users').insert({ 
+      id: data.user.id, email, name, level: 'Beginner', tutor_preference: tutor.name, total_conversations: 0
+    });
+    document.getElementById('authErr').style.color = 'var(--green)';
+    document.getElementById('authErr').textContent = 'Account created! Welcome to Talkova 🎉';
+    setTimeout(() => showLoggedIn(), 1500);
+  }
+
+  async function handleLogout() {
+    await supabaseClient.auth.signOut();
+    currentUser = null;
+    document.getElementById('navActions').style.display = 'flex';
+    document.getElementById('navUser').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+    history = [];
+    showLanding();
+  }
+
+  // Save conversation to Supabase after each AI response
+  async function saveConversation() {
+    if (!currentUser || !supabaseClient) return;
+    try {
+      await supabaseClient.from('conversations').insert({
+        user_id: currentUser.id,
+        tutor_name: tutor.name,
+        messages: history,
+        errors_made: [],
+        duration_seconds: 0
+      });
+      await supabaseClient.from('users').update({ total_conversations: (await supabaseClient.from('users').select('total_conversations').eq('id', currentUser.id).single()).data.total_conversations + 1 }).eq('id', currentUser.id);
+    } catch(e) { console.error('Save conversation error:', e); }
+  }
+
+  // Init on load
+  window.addEventListener('load', initSupabase);
+
+</script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -129,15 +233,41 @@
   .spk-toggle.on{border-color:var(--purple-light);background:rgba(83,74,183,.2)}
   .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--green);color:white;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:500;white-space:nowrap;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
   .toast.show{opacity:1}
+
+  /* Auth screen */
+  #authScreen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+  .auth-box{width:100%;max-width:380px;background:var(--bg2);border:1px solid var(--border);border-radius:24px;padding:2rem}
+  .auth-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--text);text-align:center;margin-bottom:0.5rem}
+  .auth-logo span{color:var(--purple-light)}
+  .auth-sub{font-size:14px;color:var(--text-muted);text-align:center;margin-bottom:2rem}
+  .auth-tabs{display:flex;background:var(--surface);border-radius:12px;padding:3px;margin-bottom:1.5rem}
+  .auth-tab{flex:1;padding:8px;font-size:13px;font-weight:600;border:none;background:none;color:var(--text-muted);border-radius:10px;cursor:pointer;transition:all .2s}
+  .auth-tab.active{background:var(--purple);color:white}
+  .auth-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--text);outline:none;margin-bottom:12px;font-family:'Inter',sans-serif}
+  .auth-input:focus{border-color:var(--purple)}
+  .auth-input::placeholder{color:var(--text-muted)}
+  .auth-btn{width:100%;padding:13px;font-size:14px;font-weight:600;background:var(--purple);color:white;border:none;border-radius:12px;cursor:pointer;margin-top:4px;transition:background .2s}
+  .auth-btn:hover{background:var(--purple-light)}
+  .auth-err{font-size:12px;color:var(--red);text-align:center;margin-top:8px;min-height:18px}
+  .auth-loading{opacity:0.6;pointer-events:none}
+  /* User info in nav */
+  .user-info{display:flex;align-items:center;gap:8px}
+  .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;cursor:pointer}
+  .logout-btn{font-size:12px;color:var(--text-muted);background:none;border:1px solid var(--border);padding:5px 12px;border-radius:999px;cursor:pointer;transition:all .2s}
+  .logout-btn:hover{border-color:var(--red);color:var(--red)}
 </style>
 </head>
 <body>
 
 <nav>
   <div class="logo">talk<span>ova</span></div>
-  <div style="display:flex;gap:12px">
+  <div style="display:flex;gap:12px" id="navActions">
     <button class="btn-g" onclick="showApp()">Try free</button>
     <button class="btn-p" onclick="showApp()">Start learning</button>
+  </div>
+  <div class="user-info" id="navUser" style="display:none">
+    <div class="user-avatar" id="navUserAvatar">U</div>
+    <button class="logout-btn" onclick="handleLogout()">Sign out</button>
   </div>
 </nav>
 
@@ -200,7 +330,7 @@
     <div class="voice-controls">
       <div class="vol-row">
         <span class="vol-icon">🔈</span>
-        <input type="range" class="vol-slider" id="volSlider" min="0" max="1" step="0.05" value="0.85" oninput="updateVolume(this.value)">
+        <input type="range" class="vol-slider" id="volSlider" min="0" max="1" step="0.05" value="1.0" oninput="updateVolume(this.value)">
         <span class="vol-icon">🔊</span>
       </div>
       <!-- Mic language selector -->
@@ -233,7 +363,7 @@
   let history = [];
   let loading = false;
   let speakerOn = true;
-  let currentVolume = 0.85;
+  let currentVolume = 1.0;
   let micLang = 'en-US'; // Default: student speaks English for evaluation
 
   let currentAudio = null;
@@ -263,9 +393,12 @@
         currentAudio = audio;
         audio.onended = () => {
           document.getElementById('avFrame').classList.remove('spk');
-          document.getElementById('appStat').textContent = '● Online';
-          document.getElementById('appStat').style.color = 'var(--green)';
           URL.revokeObjectURL(audioUrl);
+          // Pause 1.5s then show "your turn"
+          setTimeout(() => {
+            document.getElementById('appStat').textContent = '● Online — your turn';
+            document.getElementById('appStat').style.color = 'var(--green)';
+          }, 1500);
         };
         audio.play();
       } else {
@@ -326,7 +459,8 @@
     if (!SpeechRecognition) return null;
     const r = new SpeechRecognition();
     r.interimResults = true;
-    r.continuous = false;
+    r.continuous = true;
+    r.maxAlternatives = 3;
     r.onstart = () => {
       isListening = true;
       document.getElementById('micBtn').classList.add('active');
@@ -335,15 +469,24 @@
       document.getElementById('appStat').style.color = 'var(--red)';
       window.speechSynthesis.cancel();
     };
+
+    let silenceTimer = null;
     r.onresult = (e) => {
       let final = '', interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
         if (e.results[i].isFinal) final += t; else interim += t;
       }
-      document.getElementById('chatInput').value = final || interim;
+      if (final) document.getElementById('chatInput').value += final;
+      else if (interim) document.getElementById('chatInput').value = (document.getElementById('chatInput').value.replace(interim, '') + interim);
+      // Reset silence timer - send after 2.5s of silence
+      clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        recognition.stop();
+      }, 2500);
     };
     r.onend = () => {
+      clearTimeout(silenceTimer);
       isListening = false;
       document.getElementById('micBtn').classList.remove('active');
       document.getElementById('avFrame').classList.remove('listening');
@@ -484,6 +627,133 @@
   }
 
 
+
+  // --- Supabase Auth ---
+  const SUPABASE_URL = 'https://gobrwixmtmvcfqyrudih.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_q5EU45ugdQK-qISquQUOPA_9ZKxaFgg';
+  
+  let supabaseClient = null;
+  let currentUser = null;
+
+  async function initSupabase() {
+    try {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) {
+        currentUser = session.user;
+        showLoggedIn();
+      } else {
+        document.getElementById('authScreen').style.display = 'flex';
+      }
+    } catch(e) {
+      console.error('Supabase init error:', e);
+      // If Supabase not configured, hide auth screen and proceed
+      document.getElementById('authScreen').style.display = 'none';
+    }
+  }
+
+  function showLoggedIn() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('navActions').style.display = 'none';
+    document.getElementById('navUser').style.display = 'flex';
+    const initial = (currentUser.user_metadata?.name || currentUser.email || 'U')[0].toUpperCase();
+    document.getElementById('navUserAvatar').textContent = initial;
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+    document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+    document.getElementById('authErr').textContent = '';
+  }
+
+  async function handleLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) { document.getElementById('authErr').textContent = 'Please fill in all fields.'; return; }
+    const btn = document.querySelector('#loginForm .auth-btn');
+    btn.textContent = 'Signing in...'; btn.classList.add('auth-loading');
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    btn.textContent = 'Sign in →'; btn.classList.remove('auth-loading');
+    if (error) { document.getElementById('authErr').textContent = error.message; return; }
+    currentUser = data.user;
+    showLoggedIn();
+  }
+
+  async function handleRegister() {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    if (!name || !email || !password) { document.getElementById('authErr').textContent = 'Please fill in all fields.'; return; }
+    if (password.length < 6) { document.getElementById('authErr').textContent = 'Password must be at least 6 characters.'; return; }
+    const btn = document.querySelector('#registerForm .auth-btn');
+    btn.textContent = 'Creating account...'; btn.classList.add('auth-loading');
+    const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { name } } });
+    btn.textContent = 'Create account →'; btn.classList.remove('auth-loading');
+    if (error) { document.getElementById('authErr').textContent = error.message; return; }
+    currentUser = data.user;
+    // Save user to users table
+    await supabaseClient.from('users').insert({ 
+      id: data.user.id, email, name, level: 'Beginner', tutor_preference: tutor.name, total_conversations: 0
+    });
+    document.getElementById('authErr').style.color = 'var(--green)';
+    document.getElementById('authErr').textContent = 'Account created! Welcome to Talkova 🎉';
+    setTimeout(() => showLoggedIn(), 1500);
+  }
+
+  async function handleLogout() {
+    await supabaseClient.auth.signOut();
+    currentUser = null;
+    document.getElementById('navActions').style.display = 'flex';
+    document.getElementById('navUser').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+    history = [];
+    showLanding();
+  }
+
+  // Save conversation to Supabase after each AI response
+  async function saveConversation() {
+    if (!currentUser || !supabaseClient) return;
+    try {
+      await supabaseClient.from('conversations').insert({
+        user_id: currentUser.id,
+        tutor_name: tutor.name,
+        messages: history,
+        errors_made: [],
+        duration_seconds: 0
+      });
+      await supabaseClient.from('users').update({ total_conversations: (await supabaseClient.from('users').select('total_conversations').eq('id', currentUser.id).single()).data.total_conversations + 1 }).eq('id', currentUser.id);
+    } catch(e) { console.error('Save conversation error:', e); }
+  }
+
+  // Init on load
+  window.addEventListener('load', initSupabase);
+
 </script>
+
+<!-- Auth Screen -->
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">talk<span>ova</span></div>
+    <p class="auth-sub">Your AI English tutor, available 24/7</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign in</button>
+      <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Sign up</button>
+    </div>
+    <div id="loginForm">
+      <input class="auth-input" type="email" id="loginEmail" placeholder="your@email.com"/>
+      <input class="auth-input" type="password" id="loginPassword" placeholder="Password"/>
+      <button class="auth-btn" onclick="handleLogin()">Sign in →</button>
+    </div>
+    <div id="registerForm" style="display:none">
+      <input class="auth-input" type="text" id="regName" placeholder="Your name"/>
+      <input class="auth-input" type="email" id="regEmail" placeholder="your@email.com"/>
+      <input class="auth-input" type="password" id="regPassword" placeholder="Create a password (min 6 chars)"/>
+      <button class="auth-btn" onclick="handleRegister()">Create account →</button>
+    </div>
+    <p class="auth-err" id="authErr"></p>
+  </div>
+</div>
 </body>
 </html>
