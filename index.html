@@ -41,7 +41,8 @@
   .trow{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:2rem}
   .tc{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.2rem 1rem;width:155px;cursor:pointer;transition:all .2s;text-align:center}
   .tc:hover,.tc.sel{border-color:var(--purple);background:var(--bg3);transform:translateY(-2px)}
-  .tav{width:64px;height:64px;border-radius:50%;margin:0 auto 10px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);border:2px solid var(--border)}
+  .tav{width:64px;height:64px;border-radius:50%;margin:0 auto 10px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);border:2px solid var(--border);overflow:hidden;object-fit:cover}
+  .tav img{width:100%;height:100%;object-fit:cover;border-radius:50%}
   .tc.sel .tav{border-color:var(--purple)}
   .tn{font-size:15px;font-weight:600;margin-bottom:3px}.td{font-size:11px;color:var(--text-soft);line-height:1.4}
   .dbox{max-width:460px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);border-radius:20px;overflow:hidden}
@@ -64,11 +65,13 @@
   .ahdr{padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
   .back{background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:20px;line-height:1}
   .ainfo{display:flex;align-items:center;gap:10px;flex:1}
-  .acirc{width:38px;height:38px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);flex-shrink:0}
+  .acirc{width:38px;height:38px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);flex-shrink:0;overflow:hidden}
+  .acirc img{width:100%;height:100%;object-fit:cover;border-radius:50%}
   .aname{font-size:15px;font-weight:600}.astat{font-size:12px;color:var(--green)}
   .badge{font-size:11px;background:rgba(83,74,183,.2);color:var(--purple-light);padding:3px 10px;border-radius:999px}
   .avzone{background:var(--bg2);border-bottom:1px solid var(--border);padding:1rem 1.2rem;display:flex;justify-content:center;align-items:center;gap:16px;flex-shrink:0}
-  .avframe{width:90px;height:90px;border-radius:50%;border:3px solid var(--purple);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);transition:box-shadow .3s;flex-shrink:0}
+  .avframe{width:90px;height:90px;border-radius:50%;border:3px solid var(--purple);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);transition:box-shadow .3s;flex-shrink:0;overflow:hidden}
+  .avframe img{width:100%;height:100%;object-fit:cover;border-radius:50%}
   .avframe.spk{box-shadow:0 0 0 8px rgba(83,74,183,.25),0 0 0 16px rgba(83,74,183,.1)}
   .avframe.listening{box-shadow:0 0 0 8px rgba(255,107,107,.25),0 0 0 16px rgba(255,107,107,.1);border-color:var(--red)}
   .voice-controls{display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -133,21 +136,21 @@
     <p class="slabel">Choose your tutor</p>
     <div class="trow">
       <div class="tc sel" onclick="selectTutor(this,'Maya','M','Warm & bilingual. Grew up speaking Spanish, now teaches English.','Warm & bilingual. Grew up speaking Spanish.')">
-        <div class="tav">M</div><div class="tn">Maya</div><div class="td">Warm & bilingual. Grew up speaking Spanish.</div>
+        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" alt="Maya"/><div class="tn">Maya</div><div class="td">Warm & bilingual. Grew up speaking Spanish.</div>
       </div>
       <div class="tc" onclick="selectTutor(this,'Leo','L','Cool & energetic. Makes every lesson feel like a real conversation.','Cool & energetic. Lessons that feel like a hang.')">
-        <div class="tav">L</div><div class="tn">Leo</div><div class="td">Cool & energetic. Lessons that feel like a hang.</div>
+        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048711/IMG_3609_xilebh.png" alt="Leo"/><div class="tn">Leo</div><div class="td">Cool & energetic. Lessons that feel like a hang.</div>
       </div>
       <div class="tc" onclick="selectTutor(this,'Nova','N','Patient & clear. Perfect for learners starting from zero.','Patient & clear. Perfect for total beginners.')">
-        <div class="tav">N</div><div class="tn">Nova</div><div class="td">Patient & clear. Perfect for total beginners.</div>
+        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048595/IMG_3607_xstecn.png" alt="Nova"/><div class="tn">Nova</div><div class="td">Patient & clear. Perfect for total beginners.</div>
       </div>
     </div>
     <div class="dbox">
       <div class="dhdr"><div class="ddot"></div><span id="demoLabel">Live preview — Maya is online</span></div>
       <div class="dmsgs">
-        <div class="dm"><div class="dav" id="demoAv">M</div><div class="db ai">Hi! I'm <span id="demoName">Maya</span> 👋 Let's practice ordering at a restaurant. You go first!</div></div>
+        <div class="dm"><div class="dav" id="demoAv"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/></div><div class="db ai">Hi! I'm <span id="demoName">Maya</span> 👋 Let's practice ordering at a restaurant. You go first!</div></div>
         <div class="dm u"><div class="dav" style="background:var(--purple);color:white">U</div><div class="db usr">I want order a coffee please.</div></div>
-        <div class="dm"><div class="dav" id="demoAv2">M</div><div class="db ai">Almost perfect! <span class="tag tw">I want order</span>→<span class="tag tr">I'd like to order ✓</span> We add "to" after "want." Try again!</div></div>
+        <div class="dm"><div class="dav" id="demoAv2"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/></div><div class="db ai">Almost perfect! <span class="tag tw">I want order</span>→<span class="tag tr">I'd like to order ✓</span> We add "to" after "want." Try again!</div></div>
       </div>
       <button class="bstart" onclick="showApp()">Start your free session →</button>
     </div>
@@ -165,14 +168,14 @@
   <div class="ahdr">
     <button class="back" onclick="showLanding()">←</button>
     <div class="ainfo">
-      <div class="acirc" id="appAv">M</div>
+      <div class="acirc" id="appAv"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:38px;height:38px;border-radius:50%;object-fit:cover"/></div>
       <div><div class="aname" id="appName">Maya</div><div class="astat" id="appStat">● Online</div></div>
     </div>
     <button class="spk-toggle on" id="spkToggle" onclick="toggleSpeaker()" title="Toggle tutor voice">🔊</button>
     <span class="badge">Beginner</span>
   </div>
   <div class="avzone">
-    <div class="avframe" id="avFrame">M</div>
+    <div class="avframe" id="avFrame"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:90px;height:90px;border-radius:50%;object-fit:cover"/></div>
     <div class="voice-controls">
       <div class="vol-row">
         <span class="vol-icon">🔈</span>
@@ -200,7 +203,12 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  let tutor = { name:'Maya', initial:'M', desc:'Warm & bilingual. Grew up speaking Spanish, now teaches English.' };
+  const tutorData = {
+    Maya: { name:'Maya', initial:'M', desc:'Warm & bilingual. Grew up speaking Spanish, now teaches English.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png' },
+    Leo:  { name:'Leo',  initial:'L', desc:'Cool & energetic. Makes every lesson feel like a real conversation.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048711/IMG_3609_xilebh.png' },
+    Nova: { name:'Nova', initial:'N', desc:'Patient & clear. Perfect for learners starting from zero.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048595/IMG_3607_xstecn.png' }
+  };
+  let tutor = tutorData.Maya;
   let history = [];
   let loading = false;
   let speakerOn = true;
@@ -346,21 +354,21 @@
   function selectTutor(card, name, initial, desc) {
     document.querySelectorAll('.tc').forEach(c => c.classList.remove('sel'));
     card.classList.add('sel');
-    tutor = { name, initial, desc };
-    history = []; // Reset conversation so new tutor greets fresh
+    tutor = tutorData[name] || tutorData.Maya;
+    history = [];
     document.getElementById('chatArea') && (document.getElementById('chatArea').innerHTML = '');
     document.getElementById('demoLabel').textContent = `Live preview — ${name} is online`;
     document.getElementById('demoName').textContent = name;
-    document.getElementById('demoAv').textContent = initial;
-    document.getElementById('demoAv2').textContent = initial;
+    document.getElementById('demoAv').innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
+    document.getElementById('demoAv2').innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
   }
 
   function showApp() {
     document.getElementById('landing').classList.remove('active');
     document.getElementById('app').classList.add('active');
-    document.getElementById('appAv').textContent = tutor.initial;
+    document.getElementById('appAv').innerHTML = `<img src="${tutor.img}" style="width:38px;height:38px;border-radius:50%;object-fit:cover"/>`;
     document.getElementById('appName').textContent = tutor.name;
-    document.getElementById('avFrame').textContent = tutor.initial;
+    document.getElementById('avFrame').innerHTML = `<img src="${tutor.img}" style="width:90px;height:90px;border-radius:50%;object-fit:cover"/>`;
     if (history.length === 0) {
       const greeting = `Hi! I'm ${tutor.name} 👋 I'm your English tutor at Talkova. Let's practice speaking English together! Start by telling me your name or saying anything in English. I'll correct you gently and help you improve. You can also tap "Ayuda" if you need me to explain something in Spanish.`;
       addMessage('ai', greeting);
@@ -395,7 +403,7 @@
     const av = document.createElement('div');
     av.className = 'mav';
     if (role==='user') { av.style.background='var(--purple)'; av.style.color='white'; av.textContent='U'; }
-    else { av.textContent = tutor.initial; }
+    else { av.innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`; }
     const bbl = document.createElement('div');
     bbl.className = `bbl ${role==='user'?'usr':'ai'}`;
     bbl.textContent = text;
@@ -408,7 +416,7 @@
     const area = document.getElementById('chatArea');
     const div = document.createElement('div');
     div.className='msg'; div.id='typing';
-    const av = document.createElement('div'); av.className='mav'; av.textContent=tutor.initial;
+    const av = document.createElement('div'); av.className='mav'; av.innerHTML=`<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
     const t = document.createElement('div'); t.className='typing';
     t.innerHTML='<div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>';
     div.appendChild(av); div.appendChild(t);
