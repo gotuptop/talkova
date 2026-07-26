@@ -3,8 +3,57 @@ exports.handler = async function(event, context) {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  const { messages, tutorName, tutorDesc } = JSON.parse(event.body);
+  const { messages, tutorName, tutorDesc, tts } = JSON.parse(event.body);
 
+  // --- ElevenLabs TTS request ---
+  if (tts) {
+    const voiceIds = {
+      Leo:  'BtWabtumIemAotTjP5sk',
+      Maya: 'tIor4EV8aZq78KWcXw48wd',
+      Nova: 'b1FHpzlwSiTGg6JxF0'
+    };
+    const voiceId = voiceIds[tutorName] || voiceIds.Maya;
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+
+    try {
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: tts,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            speed: 0.85
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`ElevenLabs error: ${response.status}`);
+      }
+
+      const audioBuffer = await response.arrayBuffer();
+      const base64Audio = Buffer.from(audioBuffer).toString('base64');
+
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audio: base64Audio })
+      };
+    } catch (error) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: error.message })
+      };
+    }
+  }
+
+  // --- Anthropic chat request ---
   const systemPrompt = `You are ${tutorName}, a friendly bilingual English tutor on Talkova, built for Latino learners. Your personality: ${tutorDesc}
 
 Rules:
