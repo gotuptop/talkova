@@ -573,6 +573,15 @@
     if (mode === 'voice') {
       iarea.style.display = 'none';
       document.getElementById('voiceModeArea').style.display = 'flex';
+      // Request mic permission immediately when voice mode selected
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          stream.getTracks().forEach(t => t.stop()); // release stream, just needed permission
+          document.getElementById('voiceModeHint').textContent = 'Tap to speak';
+        })
+        .catch(() => {
+          document.getElementById('voiceModeHint').textContent = '⚠️ Allow microphone in browser settings';
+        });
     } else {
       iarea.style.display = 'flex';
       document.getElementById('voiceModeArea').style.display = 'none';
