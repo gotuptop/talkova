@@ -1,3 +1,4 @@
+
 exports.handler = async function(event, context) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -8,9 +9,9 @@ exports.handler = async function(event, context) {
   // --- ElevenLabs TTS request ---
   if (tts) {
     const voiceIds = {
-      Leo:  'BtWabtumIemAotTjP5sk',
-      Maya: 'tIor4EV8aZq78KWcXw48wd',
-      Nova: 'b1FHpzlwSiTGg6JxF0'
+      Leo:  process.env.ELEVENLABS_VOICE_LEO,
+      Maya: process.env.ELEVENLABS_VOICE_MAYA,
+      Nova: process.env.ELEVENLABS_VOICE_NOVA
     };
     const voiceId = voiceIds[tutorName] || voiceIds.Maya;
     const apiKey = process.env.ELEVENLABS_API_KEY;
