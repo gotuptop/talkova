@@ -256,24 +256,6 @@
   .logout-btn{font-size:12px;color:var(--text-muted);background:none;border:1px solid var(--border);padding:5px 12px;border-radius:999px;cursor:pointer;transition:all .2s}
   .logout-btn:hover{border-color:var(--red);color:var(--red)}
 
-  /* Mode selection */
-  .mode-select{display:flex;gap:12px;padding:1rem 1.2rem;justify-content:center;flex-shrink:0}
-  .mode-btn{flex:1;max-width:160px;padding:14px 12px;border-radius:16px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;text-align:center;transition:all .2s;font-family:'Inter',sans-serif}
-  .mode-btn:hover{border-color:var(--purple-light);background:var(--bg3);transform:translateY(-2px)}
-  .mode-btn.active{border-color:var(--purple);background:var(--bg3)}
-  .mode-icon{font-size:28px;margin-bottom:6px}
-  .mode-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
-  .mode-desc{font-size:11px;color:var(--text-soft)}
-  /* Hide/show input area based on mode */
-  .iarea.voice-mode .cinput{opacity:0.4;pointer-events:none}
-  .iarea.voice-mode .sbtn{opacity:0.4;pointer-events:none}
-  .iarea.text-mode .micbtn{opacity:0.4;pointer-events:none}
-  /* Voice mode big mic button */
-  .voice-big-btn{display:none;width:70px;height:70px;border-radius:50%;background:var(--purple);border:none;cursor:pointer;margin:0 auto;font-size:30px;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 4px 20px rgba(83,74,183,.4)}
-  .voice-big-btn:hover{background:var(--purple-light);transform:scale(1.05)}
-  .voice-big-btn.active{background:var(--red);animation:micpulse 1s infinite;box-shadow:0 4px 20px rgba(255,107,107,.4)}
-  .voice-mode-area{display:none;padding:1rem 1.2rem;border-top:1px solid var(--border);flex-direction:column;align-items:center;gap:8px;flex-shrink:0;background:var(--bg)}
-  .voice-mode-hint{font-size:12px;color:var(--text-muted)}
 </style>
 </head>
 <body>
@@ -359,22 +341,6 @@
       </div>
       <span class="voice-label" id="voiceLabel">Speak English — tutor evaluates you</span>
     </div>
-  </div>
-  <div class="mode-select" id="modeSelect" style="display:none">
-    <button class="mode-btn" id="modeTextBtn" onclick="setMode('text')">
-      <div class="mode-icon">💬</div>
-      <div class="mode-title">Text Chat</div>
-      <div class="mode-desc">Type your answers</div>
-    </button>
-    <button class="mode-btn" id="modeVoiceBtn" onclick="setMode('voice')">
-      <div class="mode-icon">🎤</div>
-      <div class="mode-title">Voice Chat</div>
-      <div class="mode-desc">Speak naturally</div>
-    </button>
-  </div>
-  <div class="voice-mode-area" id="voiceModeArea">
-    <button class="voice-big-btn" id="voiceBigBtn" onclick="toggleMic()">🎤</button>
-    <span class="voice-mode-hint" id="voiceModeHint">Tap to speak</span>
   </div>
   <div class="carea" id="chatArea"></div>
   <div class="iarea">
@@ -499,8 +465,7 @@
     r.onstart = () => {
       isListening = true;
       document.getElementById('micBtn').classList.add('active');
-      document.getElementById('voiceBigBtn') && document.getElementById('voiceBigBtn').classList.add('active');
-      document.getElementById('voiceModeHint') && (document.getElementById('voiceModeHint').textContent = 'Listening... speak now');
+
       document.getElementById('avFrame').classList.add('listening');
       document.getElementById('appStat').textContent = micLang === 'en-US' ? '● Listening in English...' : '● Escuchando en español...';
       document.getElementById('appStat').style.color = 'var(--red)';
@@ -520,8 +485,7 @@
     r.onend = () => {
       isListening = false;
       document.getElementById('micBtn').classList.remove('active');
-      document.getElementById('voiceBigBtn') && document.getElementById('voiceBigBtn').classList.remove('active');
-      document.getElementById('voiceModeHint') && (document.getElementById('voiceModeHint').textContent = 'Tap to speak');
+
       document.getElementById('avFrame').classList.remove('listening');
       document.getElementById('appStat').textContent = '● Online';
       document.getElementById('appStat').style.color = 'var(--green)';
@@ -531,8 +495,7 @@
     r.onerror = (e) => {
       isListening = false;
       document.getElementById('micBtn').classList.remove('active');
-      document.getElementById('voiceBigBtn') && document.getElementById('voiceBigBtn').classList.remove('active');
-      document.getElementById('voiceModeHint') && (document.getElementById('voiceModeHint').textContent = 'Tap to speak');
+
       document.getElementById('avFrame').classList.remove('listening');
       document.getElementById('appStat').textContent = '● Online';
       document.getElementById('appStat').style.color = 'var(--green)';
@@ -562,66 +525,21 @@
     document.getElementById('demoAv2').innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
   }
 
-  let chatMode = null; // 'text' or 'voice'
-
-  function setMode(mode) {
-    chatMode = mode;
-    document.getElementById('modeSelect').style.display = 'none';
-    document.getElementById('modeTextBtn').classList.toggle('active', mode === 'text');
-    document.getElementById('modeVoiceBtn').classList.toggle('active', mode === 'voice');
-    const iarea = document.querySelector('.iarea');
-    if (mode === 'voice') {
-      iarea.style.display = 'none';
-      document.getElementById('voiceModeArea').style.display = 'flex';
-      // Request mic permission immediately when voice mode selected
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-          stream.getTracks().forEach(t => t.stop()); // release stream, just needed permission
-          document.getElementById('voiceModeHint').textContent = 'Tap to speak';
-        })
-        .catch(() => {
-          document.getElementById('voiceModeHint').textContent = '⚠️ Allow microphone in browser settings';
-        });
-    } else {
-      iarea.style.display = 'flex';
-      document.getElementById('voiceModeArea').style.display = 'none';
-    }
-    // Send mode confirmation message
-    const modeMsg = mode === 'voice' 
-      ? "Great! We'll practice by speaking. Tap the microphone button whenever you're ready to talk. I'll listen and respond! 🎤"
-      : "Perfect! We'll practice by typing. Write your answers in English and I'll help you improve! 💬";
-    addMessage('ai', modeMsg);
-    history.push({ role:'assistant', content: modeMsg });
-    speak(modeMsg);
-  }
-
   function showApp() {
     document.getElementById('landing').classList.remove('active');
     document.getElementById('app').classList.add('active');
     document.getElementById('appAv').innerHTML = `<img src="${tutor.img}" style="width:38px;height:38px;border-radius:50%;object-fit:cover"/>`;
     document.getElementById('appName').textContent = tutor.name;
     document.getElementById('avFrame').innerHTML = `<img src="${tutor.img}" style="width:90px;height:90px;border-radius:50%;object-fit:cover"/>`;
-    chatMode = null;
-    document.getElementById('modeSelect').style.display = 'none';
-    document.querySelector('.iarea').style.display = 'flex';
-    document.getElementById('voiceModeArea').style.display = 'none';
+    // Request mic permission proactively
+    navigator.mediaDevices && navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => { stream.getTracks().forEach(t => t.stop()); })
+      .catch(() => {});
     if (history.length === 0) {
-      const greeting = `Hi! I'm ${tutor.name} 👋 Welcome to Talkova! Before we start — how would you like to practice today? Choose your preference below!`;
+      const greeting = `Hi! I'm ${tutor.name} 👋 I'm your English tutor at Talkova. You can type or use the 🎤 microphone to speak — whatever feels comfortable! What would you like to practice today?`;
       addMessage('ai', greeting);
       history.push({ role:'assistant', content: greeting });
-      setTimeout(() => {
-        speak(greeting);
-        // Show mode selector after greeting
-        setTimeout(() => {
-          document.getElementById('modeSelect').style.display = 'flex';
-        }, 500);
-      }, 400);
-    } else {
-      // Restore previous mode UI
-      if (chatMode === 'voice') {
-        document.querySelector('.iarea').style.display = 'none';
-        document.getElementById('voiceModeArea').style.display = 'flex';
-      }
+      setTimeout(() => speak(greeting), 400);
     }
   }
 
