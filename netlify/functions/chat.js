@@ -34,13 +34,13 @@ exports.handler = async function(event, context) {
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`ElevenLabs error: ${response.status}`);
-      }
-
-      const audioBuffer = await response.arrayBuffer();
-      const base64Audio = Buffer.from(audioBuffer).toString('base64');
-
+     if (!response.ok) {
+  const errBody = await response.text();
+  console.error('ElevenLabs error:', response.status, errBody);
+  throw new Error(`ElevenLabs error: ${response.status} - ${errBody}`);
+}
+const audioBuffer = await response.arrayBuffer();
+const base64Audio = Buffer.from(audioBuffer).toString('base64');
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
