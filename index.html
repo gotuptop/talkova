@@ -459,7 +459,7 @@
     if (!SpeechRecognition) return null;
     const r = new SpeechRecognition();
     r.interimResults = true;
-    r.continuous = true;
+    r.continuous = false;
     r.maxAlternatives = 3;
     r.onstart = () => {
       isListening = true;
