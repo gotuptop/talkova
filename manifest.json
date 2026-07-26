@@ -1,0 +1,30 @@
+{
+  "name": "Talkova — AI English Tutor",
+  "short_name": "Talkova",
+  "description": "Practice English with an AI tutor available 24/7",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D0C1A",
+  "theme_color": "#534AB7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://res.cloudinary.com/fajdj3ej/image/upload/v1785106081/preview_lynt5h.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "https://res.cloudinary.com/fajdj3ej/image/upload/v1785106081/preview_lynt5h.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    },
+    {
+      "src": "https://res.cloudinary.com/fajdj3ej/image/upload/v1785106081/preview_lynt5h.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "en"
+}
