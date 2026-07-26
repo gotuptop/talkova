@@ -470,23 +470,17 @@
       window.speechSynthesis.cancel();
     };
 
-    let silenceTimer = null;
+    let finalTranscript = '';
     r.onresult = (e) => {
-      let final = '', interim = '';
+      let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) final += t; else interim += t;
+        if (e.results[i].isFinal) finalTranscript += t;
+        else interim += t;
       }
-      if (final) document.getElementById('chatInput').value += final;
-      else if (interim) document.getElementById('chatInput').value = (document.getElementById('chatInput').value.replace(interim, '') + interim);
-      // Reset silence timer - send after 2.5s of silence
-      clearTimeout(silenceTimer);
-      silenceTimer = setTimeout(() => {
-        recognition.stop();
-      }, 2500);
+      document.getElementById('chatInput').value = finalTranscript || interim;
     };
     r.onend = () => {
-      clearTimeout(silenceTimer);
       isListening = false;
       document.getElementById('micBtn').classList.remove('active');
       document.getElementById('avFrame').classList.remove('listening');
@@ -756,4 +750,4 @@
   </div>
 </div>
 </body>
-</html>
+</htm
