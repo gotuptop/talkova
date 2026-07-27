@@ -364,6 +364,7 @@
       <span class="voice-label" id="voiceLabel">Speak English — tutor evaluates you</span>
     </div>
   </div>
+  <audio id="tutorAudio" playsinline webkit-playsinline preload="none"></audio>
   <div class="carea" id="chatArea"></div>
   <div class="iarea">
     <button class="micbtn" id="micBtn" onclick="toggleMic()" title="Tap to speak">🎤</button>
@@ -411,11 +412,11 @@
       if (data.audio) {
         const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
         const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audio.volume = currentVolume;
-        audio.preload = 'auto';
-        currentAudio = audio;
-        audio.onended = () => {
+        const audioEl = document.getElementById('tutorAudio');
+        audioEl.src = audioUrl;
+        audioEl.volume = currentVolume;
+        currentAudio = audioEl;
+        audioEl.onended = () => {
           document.getElementById('avFrame').classList.remove('spk');
           URL.revokeObjectURL(audioUrl);
           setTimeout(() => {
@@ -423,13 +424,10 @@
             document.getElementById('appStat').style.color = 'var(--green)';
           }, 1500);
         };
-        // iOS requires play() to be called in a user gesture context
-        // We use a silent unlock audio then play
-        const playPromise = audio.play();
+        const playPromise = audioEl.play();
         if (playPromise !== undefined) {
           playPromise.catch(() => {
-            // Retry once on iOS audio policy error
-            setTimeout(() => audio.play().catch(e => console.log('Audio play failed:', e)), 300);
+            setTimeout(() => audioEl.play().catch(e => console.log('Audio play failed:', e)), 300);
           });
         }
       } else {
@@ -456,7 +454,7 @@
     if (speakerOn) { btn.classList.add('on'); btn.textContent = '🔊'; }
     else {
       btn.classList.remove('on'); btn.textContent = '🔇';
-      if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+      const audioEl = document.getElementById('tutorAudio'); if (audioEl) { audioEl.pause(); audioEl.src = ''; } currentAudio = null;
       window.speechSynthesis.cancel();
       document.getElementById('avFrame').classList.remove('spk');
       document.getElementById('appStat').textContent = '● Online';
@@ -805,4 +803,3 @@
 </div>
 </body>
 </html>
-
