@@ -162,6 +162,25 @@
       showToast('Error connecting to payment system.');
     }
   }
+
+  function updateProgressUI(progress) {
+    if (!progress) return;
+    // Update level badge
+    if (progress.level) {
+      const badge = document.getElementById('levelBadge');
+      if (badge) {
+        badge.textContent = progress.level;
+        badge.className = 'badge level-badge level-' + progress.level.toLowerCase();
+      }
+    }
+    // Show progress notification if errors were found
+    if (progress.errors && progress.errors.length > 0) {
+      const toast = document.getElementById('progressToast');
+      toast.innerHTML = `📊 <strong>${progress.errors.length} correction${progress.errors.length > 1 ? 's' : ''}</strong> noted — keep practicing!`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  }
 </script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -341,6 +360,17 @@
   .legal-links a{font-size:12px;color:var(--text-muted);text-decoration:none}
   .legal-links a:hover{color:var(--text)}
   .legal-copy{font-size:12px;color:var(--text-muted)}
+
+  /* Progress panel */
+  .progress-bar{height:4px;background:var(--surface);border-radius:2px;overflow:hidden;margin-top:4px}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--purple-light));border-radius:2px;transition:width .5s ease}
+  .level-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.06em}
+  .level-beginner{background:rgba(46,204,138,.15);color:var(--green)}
+  .level-intermediate{background:rgba(83,74,183,.15);color:var(--purple-light)}
+  .level-advanced{background:rgba(255,200,0,.15);color:#FFD700}
+  /* Progress notification */
+  .progress-toast{position:fixed;top:80px;right:16px;background:var(--bg2);border:1px solid var(--purple);border-radius:12px;padding:10px 14px;font-size:12px;z-index:998;opacity:0;transition:opacity .3s;pointer-events:none;max-width:200px}
+  .progress-toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -479,7 +509,7 @@
       <div><div class="aname" id="appName">Maya</div><div class="astat" id="appStat">● Online</div></div>
     </div>
     <button class="spk-toggle on" id="spkToggle" onclick="toggleSpeaker()" title="Toggle tutor voice">🔊</button>
-    <span class="badge">Beginner</span>
+    <span class="badge level-badge level-beginner" id="levelBadge">Beginner</span>
   </div>
   <div class="avzone">
     <div class="avframe" id="avFrame"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:90px;height:90px;border-radius:50%;object-fit:cover"/></div>
@@ -509,6 +539,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="progress-toast" id="progressToast"></div>
 
 <script>
   const tutorData = {
@@ -940,6 +971,25 @@
       showToast('Error connecting to payment system.');
     }
   }
+
+  function updateProgressUI(progress) {
+    if (!progress) return;
+    // Update level badge
+    if (progress.level) {
+      const badge = document.getElementById('levelBadge');
+      if (badge) {
+        badge.textContent = progress.level;
+        badge.className = 'badge level-badge level-' + progress.level.toLowerCase();
+      }
+    }
+    // Show progress notification if errors were found
+    if (progress.errors && progress.errors.length > 0) {
+      const toast = document.getElementById('progressToast');
+      toast.innerHTML = `📊 <strong>${progress.errors.length} correction${progress.errors.length > 1 ? 's' : ''}</strong> noted — keep practicing!`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  }
 </script>
 
 <!-- Auth Screen -->
@@ -966,4 +1016,4 @@
   </div>
 </div>
 </body>
-</
+</html>
