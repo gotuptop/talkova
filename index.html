@@ -131,6 +131,37 @@
   }
   document.addEventListener('touchstart', unlockIOSAudio);
   document.addEventListener('click', unlockIOSAudio);
+
+  // Stripe checkout
+  const STRIPE_PRICES = {
+    pro: 'price_1TxdE62d71ujoUca2P5Zw5gw',
+    premium: 'price_1TxdGQ2d71ujoUcajnlc4ouq'
+  };
+
+  async function handleCheckout(plan) {
+    if (!currentUser) {
+      showToast('Please sign in first to subscribe.');
+      document.getElementById('authScreen').style.display = 'flex';
+      return;
+    }
+    showToast('Redirecting to secure checkout...');
+    try {
+      const res = await fetch('/.netlify/functions/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId: STRIPE_PRICES[plan],
+          userId: currentUser.id,
+          userEmail: currentUser.email
+        })
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else showToast('Error starting checkout. Please try again.');
+    } catch(e) {
+      showToast('Error connecting to payment system.');
+    }
+  }
 </script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -278,6 +309,38 @@
   .logout-btn{font-size:12px;color:var(--text-muted);background:none;border:1px solid var(--border);padding:5px 12px;border-radius:999px;cursor:pointer;transition:all .2s}
   .logout-btn:hover{border-color:var(--red);color:var(--red)}
 
+
+  /* Pricing section */
+  #pricing{padding:4rem 1.5rem;text-align:center;background:var(--bg)}
+  .pricing-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(28px,4vw,42px);margin-bottom:0.5rem}
+  .pricing-sub{font-size:16px;color:var(--text-soft);margin-bottom:3rem}
+  .pricing-grid{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;max-width:900px;margin:0 auto}
+  .plan{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:2rem 1.5rem;width:260px;text-align:left;position:relative;transition:transform .2s}
+  .plan:hover{transform:translateY(-4px)}
+  .plan.popular{border-color:var(--purple);background:var(--bg3)}
+  .plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--purple);color:white;font-size:11px;font-weight:700;padding:4px 14px;border-radius:999px;white-space:nowrap}
+  .plan-name{font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+  .plan-price{font-family:'Syne',sans-serif;font-weight:800;font-size:42px;color:var(--text);margin-bottom:4px}
+  .plan-price span{font-size:16px;font-weight:400;color:var(--text-muted)}
+  .plan-desc{font-size:13px;color:var(--text-soft);margin-bottom:1.5rem;line-height:1.5}
+  .plan-btn{display:block;width:100%;padding:12px;font-size:14px;font-weight:600;border-radius:12px;border:none;cursor:pointer;text-align:center;transition:all .2s;margin-bottom:1.5rem}
+  .plan-btn.free{background:var(--surface);color:var(--text)}
+  .plan-btn.free:hover{background:var(--bg3)}
+  .plan-btn.pro{background:var(--purple);color:white}
+  .plan-btn.pro:hover{background:var(--purple-light)}
+  .plan-btn.premium{background:linear-gradient(135deg,var(--purple),#9B59B6);color:white}
+  .plan-btn.premium:hover{opacity:0.9}
+  .plan-features{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .plan-features li{font-size:13px;color:var(--text-soft);display:flex;align-items:center;gap:8px}
+  .plan-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
+  .plan-features li.no::before{content:'✕';color:var(--text-muted)}
+  .plan-features li.no{color:var(--text-muted)}
+  /* Legal section */
+  .legal-section{padding:2rem 1.5rem;max-width:800px;margin:0 auto;text-align:center}
+  .legal-links{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:1rem}
+  .legal-links a{font-size:12px;color:var(--text-muted);text-decoration:none}
+  .legal-links a:hover{color:var(--text)}
+  .legal-copy{font-size:12px;color:var(--text-muted)}
 </style>
 </head>
 <body>
@@ -336,6 +399,76 @@
     <div class="feat"><div class="fi">🌎</div><div class="ft">Built for Latinos</div><div class="fd">Switch to Spanish whenever you need to.</div></div>
     <div class="feat"><div class="fi">📈</div><div class="ft">Track your growth</div><div class="fd">See your progress week by week.</div></div>
   </div>
+
+  <!-- Pricing Section -->
+  <section id="pricing">
+    <h2 class="pricing-title">Simple, honest pricing</h2>
+    <p class="pricing-sub">Start free. Upgrade when you're ready.</p>
+    <div class="pricing-grid">
+
+      <!-- Free Plan -->
+      <div class="plan">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0<span>/mo</span></div>
+        <p class="plan-desc">Perfect to try Talkova and see if it's right for you.</p>
+        <button class="plan-btn free" onclick="showApp()">Start for free →</button>
+        <ul class="plan-features">
+          <li>5 conversations per day</li>
+          <li>All 3 AI tutors</li>
+          <li>Text chat</li>
+          <li class="no">Voice conversations</li>
+          <li class="no">Progress tracking</li>
+          <li class="no">Night audio lessons</li>
+        </ul>
+      </div>
+
+      <!-- Pro Plan -->
+      <div class="plan popular">
+        <div class="plan-badge">⭐ Most popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$9.99<span>/mo</span></div>
+        <p class="plan-desc">Unlimited practice with voice, corrections and progress tracking.</p>
+        <button class="plan-btn pro" onclick="handleCheckout('pro')">Get Pro →</button>
+        <ul class="plan-features">
+          <li>Unlimited conversations</li>
+          <li>All 3 AI tutors</li>
+          <li>Voice conversations 🎤</li>
+          <li>Instant corrections</li>
+          <li>Progress tracking</li>
+          <li class="no">Night audio lessons</li>
+        </ul>
+      </div>
+
+      <!-- Premium Plan -->
+      <div class="plan">
+        <div class="plan-name">Premium</div>
+        <div class="plan-price">$19.99<span>/mo</span></div>
+        <p class="plan-desc">Full immersion with subconscious learning while you sleep.</p>
+        <button class="plan-btn premium" onclick="handleCheckout('premium')">Get Premium →</button>
+        <ul class="plan-features">
+          <li>Everything in Pro</li>
+          <li>Night audio at 25% volume</li>
+          <li>PDF lesson guides</li>
+          <li>Personalized algorithm</li>
+          <li>Priority support</li>
+          <li>Early access to new features</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- Legal & Policy -->
+    <div class="legal-section" style="margin-top:3rem">
+      <div class="legal-links">
+        <a href="#terms">Terms of Service</a>
+        <a href="#privacy">Privacy Policy</a>
+        <a href="#refund">Refund Policy</a>
+        <a href="#cancel">Cancel Anytime</a>
+        <a href="mailto:support@talkova.app">Contact Support</a>
+      </div>
+      <p class="legal-copy">© 2026 Talkova. All rights reserved. · Subscriptions renew monthly. Cancel anytime — no questions asked. · Refunds available within 7 days of purchase.</p>
+    </div>
+  </section>
 </div>
 
 <div id="app" class="screen">
@@ -776,6 +909,37 @@
   }
   document.addEventListener('touchstart', unlockIOSAudio);
   document.addEventListener('click', unlockIOSAudio);
+
+  // Stripe checkout
+  const STRIPE_PRICES = {
+    pro: 'price_1TxdE62d71ujoUca2P5Zw5gw',
+    premium: 'price_1TxdGQ2d71ujoUcajnlc4ouq'
+  };
+
+  async function handleCheckout(plan) {
+    if (!currentUser) {
+      showToast('Please sign in first to subscribe.');
+      document.getElementById('authScreen').style.display = 'flex';
+      return;
+    }
+    showToast('Redirecting to secure checkout...');
+    try {
+      const res = await fetch('/.netlify/functions/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId: STRIPE_PRICES[plan],
+          userId: currentUser.id,
+          userEmail: currentUser.email
+        })
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else showToast('Error starting checkout. Please try again.');
+    } catch(e) {
+      showToast('Error connecting to payment system.');
+    }
+  }
 </script>
 
 <!-- Auth Screen -->
@@ -802,4 +966,4 @@
   </div>
 </div>
 </body>
-</html>
+</
