@@ -124,12 +124,13 @@
     });
   }
 
-  // Fix iOS audio - unlock audio context on first touch
-  document.addEventListener('touchstart', function unlockAudio() {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    ctx.resume();
-    document.removeEventListener('touchstart', unlockAudio);
-  }, { once: true });
+  // Fix iOS audio - unlock on every user interaction
+  function unlockIOSAudio() {
+    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//OEZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAIAAADnAAjIyMjIyMjIyMjIyMjIyMjTU1NTU1NTU1NTU1NTU1Nd3d3d3d3d3d3d3d3d3d3oaGhoaGhoaGhoaGhoaGhoaurq6urq6urq6urq6urq6u1tbW1tbW1tbW1tbW1tbW13t7e3t7e3t7e3t7e3t7e3v////////////////////////////////8AAAAaTGF2YzU4LjU0AAAAAAAAAAAAAAAA//OEZAAHCAAGkAAAAAAAAA0gAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
+    silentAudio.play().catch(() => {});
+  }
+  document.addEventListener('touchstart', unlockIOSAudio);
+  document.addEventListener('click', unlockIOSAudio);
 </script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -412,17 +413,25 @@
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
         audio.volume = currentVolume;
+        audio.preload = 'auto';
         currentAudio = audio;
         audio.onended = () => {
           document.getElementById('avFrame').classList.remove('spk');
           URL.revokeObjectURL(audioUrl);
-          // Pause 1.5s then show "your turn"
           setTimeout(() => {
             document.getElementById('appStat').textContent = '● Online — your turn';
             document.getElementById('appStat').style.color = 'var(--green)';
           }, 1500);
         };
-        audio.play();
+        // iOS requires play() to be called in a user gesture context
+        // We use a silent unlock audio then play
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            // Retry once on iOS audio policy error
+            setTimeout(() => audio.play().catch(e => console.log('Audio play failed:', e)), 300);
+          });
+        }
       } else {
         throw new Error('No audio');
       }
@@ -762,12 +771,13 @@
     });
   }
 
-  // Fix iOS audio - unlock audio context on first touch
-  document.addEventListener('touchstart', function unlockAudio() {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    ctx.resume();
-    document.removeEventListener('touchstart', unlockAudio);
-  }, { once: true });
+  // Fix iOS audio - unlock on every user interaction
+  function unlockIOSAudio() {
+    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//OEZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAIAAADnAAjIyMjIyMjIyMjIyMjIyMjTU1NTU1NTU1NTU1NTU1Nd3d3d3d3d3d3d3d3d3d3oaGhoaGhoaGhoaGhoaGhoaurq6urq6urq6urq6urq6u1tbW1tbW1tbW1tbW1tbW13t7e3t7e3t7e3t7e3t7e3v////////////////////////////////8AAAAaTGF2YzU4LjU0AAAAAAAAAAAAAAAA//OEZAAHCAAGkAAAAAAAAA0gAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
+    silentAudio.play().catch(() => {});
+  }
+  document.addEventListener('touchstart', unlockIOSAudio);
+  document.addEventListener('click', unlockIOSAudio);
 </script>
 
 <!-- Auth Screen -->
