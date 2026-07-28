@@ -181,6 +181,118 @@
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
   }
+
+  // End session and generate lesson summary
+  async function endSession() {
+    if (history.length < 4) {
+      showToast('Have a longer conversation first!');
+      return;
+    }
+    document.getElementById('lessonModal').classList.add('show');
+    document.getElementById('lessonContent').innerHTML = '<div class="loading-lesson">⏳ Generating your personalized lesson...</div>';
+    
+    try {
+      const userName = currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || 'Student';
+      const res = await fetch('/.netlify/functions/generate-lesson', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: history,
+          tutorName: tutor.name,
+          userId: currentUser?.id || null,
+          userName
+        })
+      });
+      const data = await res.json();
+      if (data.lesson) renderLesson(data.lesson);
+      else throw new Error('No lesson data');
+    } catch(e) {
+      document.getElementById('lessonContent').innerHTML = '<div class="loading-lesson">❌ Could not generate lesson. Try again.</div>';
+    }
+  }
+
+  function renderLesson(lesson) {
+    let html = `
+      <p class="lesson-date">📅 ${lesson.date} · Tutor: ${lesson.tutorName}</p>
+      <h3 style="font-size:16px;margin-bottom:1rem">${lesson.title || 'English Practice Session'}</h3>`;
+
+    // Key phrases
+    if (lesson.key_phrases && lesson.key_phrases.length > 0) {
+      html += `<div class="lesson-section">
+        <div class="lesson-section-title">⭐ Key Phrases Practiced</div>`;
+      lesson.key_phrases.forEach(p => {
+        html += `<div class="phrase-item">💬 ${p}</div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Corrections
+    if (lesson.corrections && lesson.corrections.length > 0) {
+      html += `<div class="lesson-section">
+        <div class="lesson-section-title">✏️ Corrections</div>`;
+      lesson.corrections.forEach(c => {
+        html += `<div class="correction-item">
+          <div class="correction-wrong">❌ ${c.wrong}</div>
+          <div class="correction-right">✅ ${c.correct}</div>
+          <div class="correction-tip">💡 ${c.tip}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Night audio
+    if (lesson.night_audio_script) {
+      html += `<div class="lesson-section">
+        <div class="lesson-section-title">🌙 Night Audio</div>
+        <div class="night-audio-box">
+          <div class="night-audio-title">🎧 Listen before sleep at 25% volume</div>
+          <div class="night-audio-text">${lesson.night_audio_script}</div>
+          <div class="night-audio-controls">
+            <button class="night-btn play" onclick="playNightAudio('${encodeURIComponent(lesson.night_audio_script)}')">▶ Play now</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    // Homework
+    if (lesson.homework) {
+      html += `<div class="lesson-section">
+        <div class="lesson-section-title">📝 Homework</div>
+        <div class="homework-box">🏠 ${lesson.homework}</div>
+      </div>`;
+    }
+
+    html += `<button class="end-session-btn" onclick="closeLessonModal()">Close & Continue Practicing</button>`;
+    document.getElementById('lessonContent').innerHTML = html;
+  }
+
+  function closeLessonModal() {
+    document.getElementById('lessonModal').classList.remove('show');
+  }
+
+  // Play night audio using ElevenLabs
+  async function playNightAudio(encodedScript) {
+    const script = decodeURIComponent(encodedScript);
+    showToast('🎧 Generating night audio...');
+    try {
+      const res = await fetch('/.netlify/functions/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tts: script, tutorName: tutor.name })
+      });
+      const data = await res.json();
+      if (data.audio) {
+        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.volume = 0.25; // 25% volume for night listening
+        audio.play();
+        showToast('🌙 Playing at 25% volume — night mode');
+      }
+    } catch(e) {
+      showToast('Could not generate audio. Try again.');
+    }
+  }
 </script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -371,6 +483,33 @@
   /* Progress notification */
   .progress-toast{position:fixed;top:80px;right:16px;background:var(--bg2);border:1px solid var(--purple);border-radius:12px;padding:10px 14px;font-size:12px;z-index:998;opacity:0;transition:opacity .3s;pointer-events:none;max-width:200px}
   .progress-toast.show{opacity:1}
+
+  /* Lesson summary modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:none;align-items:center;justify-content:center;padding:1rem}
+  .modal-overlay.show{display:flex}
+  .modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto;padding:1.5rem}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem}
+  .modal-title{font-family:'Syne',sans-serif;font-weight:800;font-size:18px}
+  .modal-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer}
+  .lesson-date{font-size:12px;color:var(--text-muted);margin-bottom:1.2rem}
+  .lesson-section{margin-bottom:1.2rem}
+  .lesson-section-title{font-size:11px;font-weight:700;color:var(--purple-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+  .phrase-item{background:var(--surface);border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:6px;color:var(--text)}
+  .correction-item{background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px}
+  .correction-wrong{color:var(--red);text-decoration:line-through;margin-bottom:4px}
+  .correction-right{color:var(--green);margin-bottom:4px}
+  .correction-tip{color:var(--text-muted);font-size:12px}
+  .night-audio-box{background:var(--bg3);border:1px solid rgba(83,74,183,.3);border-radius:12px;padding:1rem;margin-bottom:1rem}
+  .night-audio-title{font-size:13px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .night-audio-text{font-size:12px;color:var(--text-soft);line-height:1.6;margin-bottom:10px}
+  .night-audio-controls{display:flex;gap:8px}
+  .night-btn{flex:1;padding:8px;font-size:12px;font-weight:600;border-radius:8px;border:none;cursor:pointer}
+  .night-btn.play{background:var(--purple);color:white}
+  .night-btn.download{background:var(--surface);color:var(--text)}
+  .homework-box{background:rgba(46,204,138,.1);border:1px solid rgba(46,204,138,.2);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--text)}
+  .end-session-btn{display:block;width:100%;padding:12px;font-size:14px;font-weight:600;background:var(--surface);color:var(--text-soft);border:1px solid var(--border);border-radius:12px;cursor:pointer;text-align:center;margin-top:8px}
+  .end-session-btn:hover{border-color:var(--purple);color:var(--text)}
+  .loading-lesson{text-align:center;padding:2rem;color:var(--text-muted)}
 </style>
 </head>
 <body>
@@ -509,6 +648,7 @@
       <div><div class="aname" id="appName">Maya</div><div class="astat" id="appStat">● Online</div></div>
     </div>
     <button class="spk-toggle on" id="spkToggle" onclick="toggleSpeaker()" title="Toggle tutor voice">🔊</button>
+    <button style="background:none;border:1px solid var(--border);border-radius:999px;color:var(--text-soft);font-size:11px;padding:4px 10px;cursor:pointer" onclick="endSession()" title="End session & get lesson summary">End</button>
     <span class="badge level-badge level-beginner" id="levelBadge">Beginner</span>
   </div>
   <div class="avzone">
@@ -990,8 +1130,133 @@
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
   }
+
+  // End session and generate lesson summary
+  async function endSession() {
+    if (history.length < 4) {
+      showToast('Have a longer conversation first!');
+      return;
+    }
+    document.getElementById('lessonModal').classList.add('show');
+    document.getElementById('lessonContent').innerHTML = '<div class="loading-lesson">⏳ Generating your personalized lesson...</div>';
+    
+    try {
+      const userName = currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || 'Student';
+      const res = await fetch('/.netlify/functions/generate-lesson', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: history,
+          tutorName: tutor.name,
+          userId: currentUser?.id || null,
+          userName
+        })
+      });
+      const data = await res.json();
+      if (data.lesson) renderLesson(data.lesson);
+      else throw new Error('No lesson data');
+    } catch(e) {
+      document.getElementById('lessonContent').innerHTML = '<div class="loading-lesson">❌ Could not generate lesson. Try again.</div>';
+    }
+  }
+
+  function renderLesson(lesson) {
+    let html = `
+      <p class="lesson-date">📅 ${lesson.date} · Tutor: ${lesson.tutorName}</p>
+      <h3 style="font-size:16px;margin-bottom:1rem">${lesson.title || 'English Practice Session'}</h3>`;
+
+    // Key phrases
+    if (lesson.key_phrases && lesson.key_phrases.length > 0) {
+      html += `<div class="lesson-section">
+        <div class="lesson-section-title">⭐ Key Phrases Practiced</div>`;
+      lesson.key_phrases.forEach(p => {
+        html += `<div class="phrase-item">💬 ${p}</div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Corrections
+    if (lesson.corrections && lesson.corrections.length > 0) {
+      html += `<div class="lesson-section">
+        <div class="lesson-section-title">✏️ Corrections</div>`;
+      lesson.corrections.forEach(c => {
+        html += `<div class="correction-item">
+          <div class="correction-wrong">❌ ${c.wrong}</div>
+          <div class="correction-right">✅ ${c.correct}</div>
+          <div class="correction-tip">💡 ${c.tip}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Night audio
+    if (lesson.night_audio_script) {
+      html += `<div class="lesson-section">
+        <div class="lesson-section-title">🌙 Night Audio</div>
+        <div class="night-audio-box">
+          <div class="night-audio-title">🎧 Listen before sleep at 25% volume</div>
+          <div class="night-audio-text">${lesson.night_audio_script}</div>
+          <div class="night-audio-controls">
+            <button class="night-btn play" onclick="playNightAudio('${encodeURIComponent(lesson.night_audio_script)}')">▶ Play now</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    // Homework
+    if (lesson.homework) {
+      html += `<div class="lesson-section">
+        <div class="lesson-section-title">📝 Homework</div>
+        <div class="homework-box">🏠 ${lesson.homework}</div>
+      </div>`;
+    }
+
+    html += `<button class="end-session-btn" onclick="closeLessonModal()">Close & Continue Practicing</button>`;
+    document.getElementById('lessonContent').innerHTML = html;
+  }
+
+  function closeLessonModal() {
+    document.getElementById('lessonModal').classList.remove('show');
+  }
+
+  // Play night audio using ElevenLabs
+  async function playNightAudio(encodedScript) {
+    const script = decodeURIComponent(encodedScript);
+    showToast('🎧 Generating night audio...');
+    try {
+      const res = await fetch('/.netlify/functions/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tts: script, tutorName: tutor.name })
+      });
+      const data = await res.json();
+      if (data.audio) {
+        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.volume = 0.25; // 25% volume for night listening
+        audio.play();
+        showToast('🌙 Playing at 25% volume — night mode');
+      }
+    } catch(e) {
+      showToast('Could not generate audio. Try again.');
+    }
+  }
 </script>
 
+
+<!-- Lesson Summary Modal -->
+<div class="modal-overlay" id="lessonModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📚 Today's Lesson</div>
+      <button class="modal-close" onclick="closeLessonModal()">✕</button>
+    </div>
+    <div id="lessonContent">
+      <div class="loading-lesson">⏳ Generating your lesson summary...</div>
+    </div>
+  </div>
+</div>
 <!-- Auth Screen -->
 <div id="authScreen">
   <div class="auth-box">
