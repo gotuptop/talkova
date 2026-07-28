@@ -12,417 +12,14 @@
 <link rel="apple-touch-icon" href="https://res.cloudinary.com/fajdj3ej/image/upload/v1785106081/preview_lynt5h.webp"/>
 <meta name="theme-color" content="#534AB7"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-  // --- Supabase Auth ---
-  const SUPABASE_URL = 'https://gobrwixmtmvcfqyrudih.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_q5EU45ugdQK-qISquQUOPA_9ZKxaFgg';
-  
-  let supabaseClient = null;
-  let currentUser = null;
-
-  async function initSupabase() {
-    try {
-      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session) {
-        currentUser = session.user;
-        showLoggedIn();
-      } else {
-        document.getElementById('authScreen').style.display = 'flex';
-      }
-    } catch(e) {
-      console.error('Supabase init error:', e);
-      // If Supabase not configured, hide auth screen and proceed
-      document.getElementById('authScreen').style.display = 'none';
-    }
-  }
-
-  function showLoggedIn() {
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('navActions').style.display = 'none';
-    document.getElementById('navUser').style.display = 'flex';
-    const initial = (currentUser.user_metadata?.name || currentUser.email || 'U')[0].toUpperCase();
-    document.getElementById('navUserAvatar').textContent = initial;
-  }
-
-  function switchTab(tab) {
-    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
-    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
-    document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
-    document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
-    document.getElementById('authErr').textContent = '';
-  }
-
-  async function handleLogin() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    if (!email || !password) { document.getElementById('authErr').textContent = 'Please fill in all fields.'; return; }
-    const btn = document.querySelector('#loginForm .auth-btn');
-    btn.textContent = 'Signing in...'; btn.classList.add('auth-loading');
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    btn.textContent = 'Sign in →'; btn.classList.remove('auth-loading');
-    if (error) { document.getElementById('authErr').textContent = error.message; return; }
-    currentUser = data.user;
-    showLoggedIn();
-  }
-
-  async function handleRegister() {
-    const name = document.getElementById('regName').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-    const password = document.getElementById('regPassword').value;
-    if (!name || !email || !password) { document.getElementById('authErr').textContent = 'Please fill in all fields.'; return; }
-    if (password.length < 6) { document.getElementById('authErr').textContent = 'Password must be at least 6 characters.'; return; }
-    const btn = document.querySelector('#registerForm .auth-btn');
-    btn.textContent = 'Creating account...'; btn.classList.add('auth-loading');
-    const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { name } } });
-    btn.textContent = 'Create account →'; btn.classList.remove('auth-loading');
-    if (error) { document.getElementById('authErr').textContent = error.message; return; }
-    currentUser = data.user;
-    // Save user to users table
-    await supabaseClient.from('users').insert({ 
-      id: data.user.id, email, name, level: 'Beginner', tutor_preference: tutor.name, total_conversations: 0
-    });
-    document.getElementById('authErr').style.color = 'var(--green)';
-    document.getElementById('authErr').textContent = 'Account created! Welcome to Talkova 🎉';
-    setTimeout(() => showLoggedIn(), 1500);
-  }
-
-  async function handleLogout() {
-    await supabaseClient.auth.signOut();
-    currentUser = null;
-    document.getElementById('navActions').style.display = 'flex';
-    document.getElementById('navUser').style.display = 'none';
-    document.getElementById('authScreen').style.display = 'flex';
-    history = [];
-    showLanding();
-  }
-
-  // Save conversation to Supabase after each AI response
-  async function saveConversation() {
-    if (!currentUser || !supabaseClient) return;
-    try {
-      await supabaseClient.from('conversations').insert({
-        user_id: currentUser.id,
-        tutor_name: tutor.name,
-        messages: history,
-        errors_made: [],
-        duration_seconds: 0
-      });
-      await supabaseClient.from('users').update({ total_conversations: (await supabaseClient.from('users').select('total_conversations').eq('id', currentUser.id).single()).data.total_conversations + 1 }).eq('id', currentUser.id);
-    } catch(e) { console.error('Save conversation error:', e); }
-  }
-
-  // Init on load
-  window.addEventListener('load', initSupabase);
-
-
-  // Register Service Worker for PWA
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
-        .catch(err => console.log('SW registration failed:', err));
-    });
-  }
-
-  // Fix iOS audio - unlock on every user interaction
-  function unlockIOSAudio() {
-    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//OEZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAIAAADnAAjIyMjIyMjIyMjIyMjIyMjTU1NTU1NTU1NTU1NTU1Nd3d3d3d3d3d3d3d3d3d3oaGhoaGhoaGhoaGhoaGhoaurq6urq6urq6urq6urq6u1tbW1tbW1tbW1tbW1tbW13t7e3t7e3t7e3t7e3t7e3v////////////////////////////////8AAAAaTGF2YzU4LjU0AAAAAAAAAAAAAAAA//OEZAAHCAAGkAAAAAAAAA0gAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
-    silentAudio.play().catch(() => {});
-  }
-  document.addEventListener('touchstart', unlockIOSAudio);
-  document.addEventListener('click', unlockIOSAudio);
-
-  // Stripe checkout
-  const STRIPE_PRICES = {
-    pro: 'price_1TxdE62d71ujoUca2P5Zw5gw',
-    premium: 'price_1TxdGQ2d71ujoUcajnlc4ouq'
-  };
-
-  async function handleCheckout(plan) {
-    if (!currentUser) {
-      showToast('Please sign in first to subscribe.');
-      document.getElementById('authScreen').style.display = 'flex';
-      return;
-    }
-    showToast('Redirecting to secure checkout...');
-    try {
-      const res = await fetch('/.netlify/functions/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId: STRIPE_PRICES[plan],
-          userId: currentUser.id,
-          userEmail: currentUser.email
-        })
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else showToast('Error starting checkout. Please try again.');
-    } catch(e) {
-      showToast('Error connecting to payment system.');
-    }
-  }
-
-  function updateProgressUI(progress) {
-    if (!progress) return;
-    // Update level badge
-    if (progress.level) {
-      const badge = document.getElementById('levelBadge');
-      if (badge) {
-        badge.textContent = progress.level;
-        badge.className = 'badge level-badge level-' + progress.level.toLowerCase();
-      }
-    }
-    // Show progress notification if errors were found
-    if (progress.errors && progress.errors.length > 0) {
-      const toast = document.getElementById('progressToast');
-      toast.innerHTML = `📊 <strong>${progress.errors.length} correction${progress.errors.length > 1 ? 's' : ''}</strong> noted — keep practicing!`;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
-    }
-  }
-
-  // End session and generate lesson summary
-  async function endSession() {
-    if (history.length < 4) {
-      showToast('Have a longer conversation first!');
-      return;
-    }
-    document.getElementById('lessonModal').classList.add('show');
-    document.getElementById('lessonContent').innerHTML = '<div class="loading-lesson">⏳ Generating your personalized lesson...</div>';
-    
-    try {
-      const userName = currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || 'Student';
-      const res = await fetch('/.netlify/functions/generate-lesson', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: history,
-          tutorName: tutor.name,
-          userId: currentUser?.id || null,
-          userName
-        })
-      });
-      const data = await res.json();
-      if (data.lesson) renderLesson(data.lesson);
-      else throw new Error('No lesson data');
-    } catch(e) {
-      document.getElementById('lessonContent').innerHTML = '<div class="loading-lesson">❌ Could not generate lesson. Try again.</div>';
-    }
-  }
-
-  let currentLesson = null;
-  function renderLesson(lesson) {
-    currentLesson = lesson;
-    let html = `
-      <p class="lesson-date">📅 ${lesson.date} · Tutor: ${lesson.tutorName}</p>
-      <h3 style="font-size:16px;margin-bottom:1rem">${lesson.title || 'English Practice Session'}</h3>`;
-
-    // Key phrases
-    if (lesson.key_phrases && lesson.key_phrases.length > 0) {
-      html += `<div class="lesson-section">
-        <div class="lesson-section-title">⭐ Key Phrases Practiced</div>`;
-      lesson.key_phrases.forEach(p => {
-        html += `<div class="phrase-item">💬 ${p}</div>`;
-      });
-      html += `</div>`;
-    }
-
-    // Corrections
-    if (lesson.corrections && lesson.corrections.length > 0) {
-      html += `<div class="lesson-section">
-        <div class="lesson-section-title">✏️ Corrections</div>`;
-      lesson.corrections.forEach(c => {
-        html += `<div class="correction-item">
-          <div class="correction-wrong">❌ ${c.wrong}</div>
-          <div class="correction-right">✅ ${c.correct}</div>
-          <div class="correction-tip">💡 ${c.tip}</div>
-        </div>`;
-      });
-      html += `</div>`;
-    }
-
-    // Night audio
-    if (lesson.night_audio_script) {
-      html += `<div class="lesson-section">
-        <div class="lesson-section-title">🌙 Night Audio</div>
-        <div class="night-audio-box">
-          <div class="night-audio-title">🎧 Listen before sleep at 25% volume</div>
-          <div class="night-audio-text">${lesson.night_audio_script}</div>
-          <div class="night-audio-controls">
-            <button class="night-btn play" onclick="playNightAudio('${encodeURIComponent(lesson.night_audio_script)}')">▶ Play now</button>
-            <button class="night-btn download" onclick="saveNightAudio('${encodeURIComponent(lesson.night_audio_script)}')">💾 Save audio</button>
-          </div>
-        </div>
-      </div>`;
-    }
-
-    // Homework
-    if (lesson.homework) {
-      html += `<div class="lesson-section">
-        <div class="lesson-section-title">📝 Homework</div>
-        <div class="homework-box">🏠 ${lesson.homework}</div>
-      </div>`;
-    }
-
-    html += `
-      <button class="night-btn play" style="width:100%;margin-bottom:8px;padding:12px;font-size:14px" onclick="generatePDF(currentLesson)">📄 Download PDF Lesson</button>
-      <button class="end-session-btn" onclick="closeLessonModal()">Close & Continue Practicing</button>`;
-    document.getElementById('lessonContent').innerHTML = html;
-  }
-
-  function closeLessonModal() {
-    document.getElementById('lessonModal').classList.remove('show');
-  }
-
-  // Play night audio using ElevenLabs
-  async function playNightAudio(encodedScript) {
-    const script = decodeURIComponent(encodedScript);
-    showToast('🎧 Generating night audio...');
-    try {
-      const res = await fetch('/.netlify/functions/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tts: script, tutorName: tutor.name })
-      });
-      const data = await res.json();
-      if (data.audio) {
-        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audio.volume = 0.25; // 25% volume for night listening
-        audio.play();
-        showToast('🌙 Playing at 25% volume — night mode');
-      }
-    } catch(e) {
-      showToast('Could not generate audio. Try again.');
-    }
-  }
-
-  function generatePDF(lesson) {
-    const printWindow = window.open('', '_blank');
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8"/>
-<title>Talkova Lesson — ${lesson.date}</title>
-<style>
-  body{font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:40px auto;padding:20px;color:#1a1a2e;line-height:1.6}
-  .header{text-align:center;border-bottom:3px solid #534AB7;padding-bottom:20px;margin-bottom:30px}
-  .logo{font-size:28px;font-weight:900;color:#534AB7;margin-bottom:4px}
-  .logo span{color:#FF6B35}
-  .lesson-title{font-size:20px;font-weight:700;margin-bottom:4px}
-  .lesson-meta{font-size:13px;color:#666;margin-bottom:0}
-  .section{margin-bottom:24px}
-  .section-title{font-size:12px;font-weight:700;color:#534AB7;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:12px}
-  .phrase{background:#f5f5ff;border-left:3px solid #534AB7;padding:8px 12px;margin-bottom:8px;border-radius:0 6px 6px 0;font-size:14px}
-  .correction{background:#fff8f8;border:1px solid #ffdddd;border-radius:8px;padding:12px;margin-bottom:10px}
-  .wrong{color:#cc0000;font-size:13px;text-decoration:line-through;margin-bottom:4px}
-  .right{color:#006600;font-size:13px;font-weight:600;margin-bottom:4px}
-  .tip{color:#666;font-size:12px}
-  .night-audio{background:#f0eeff;border:1px solid #c5bff5;border-radius:8px;padding:16px;margin-bottom:16px}
-  .night-title{font-size:14px;font-weight:700;color:#534AB7;margin-bottom:8px}
-  .night-text{font-size:13px;color:#333;line-height:1.8}
-  .homework{background:#f0fff5;border:1px solid #b3f0cc;border-radius:8px;padding:12px;font-size:14px}
-  .footer{text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #eee;font-size:12px;color:#999}
-  .instructions{background:#fffdf0;border:1px solid #ffe580;border-radius:8px;padding:14px;margin-bottom:20px;font-size:13px}
-  .instructions h4{margin:0 0 8px;color:#8B6914;font-size:13px}
-  .instructions ol{margin:0;padding-left:18px;color:#555}
-  .instructions li{margin-bottom:4px}
-  @media print{body{margin:20px}}
-</style>
-</head>
-<body>
-<div class="header">
-  <div class="logo">talk<span>ova</span></div>
-  <div class="lesson-title">${lesson.title || 'English Practice Session'}</div>
-  <div class="lesson-meta">📅 ${lesson.date} · Tutor: ${lesson.tutorName} · Student: ${lesson.studentName}</div>
-</div>
-
-<div class="instructions">
-  <h4>🌙 How to use this lesson for subconscious learning:</h4>
-  <ol>
-    <li><strong>Before sleep:</strong> Read this PDF out loud while listening to the audio at 25% volume</li>
-    <li><strong>During sleep:</strong> Play the audio on repeat at 25% volume all night</li>
-    <li><strong>Morning:</strong> Read the PDF again and repeat each phrase 3 times out loud</li>
-  </ol>
-</div>
-
-${lesson.key_phrases && lesson.key_phrases.length > 0 ? `
-<div class="section">
-  <div class="section-title">⭐ Key Phrases Practiced</div>
-  ${lesson.key_phrases.map(p => `<div class="phrase">💬 ${p}</div>`).join('')}
-</div>` : ''}
-
-${lesson.corrections && lesson.corrections.length > 0 ? `
-<div class="section">
-  <div class="section-title">✏️ Corrections to Remember</div>
-  ${lesson.corrections.map(c => `
-  <div class="correction">
-    <div class="wrong">❌ ${c.wrong}</div>
-    <div class="right">✅ ${c.correct}</div>
-    <div class="tip">💡 ${c.tip}</div>
-  </div>`).join('')}
-</div>` : ''}
-
-${lesson.night_audio_script ? `
-<div class="section">
-  <div class="section-title">🎧 Night Audio Script — Read & Listen</div>
-  <div class="night-audio">
-    <div class="night-title">🌙 Listen to this at 25% volume before and during sleep</div>
-    <div class="night-text">${lesson.night_audio_script}</div>
-  </div>
-</div>` : ''}
-
-${lesson.homework ? `
-<div class="section">
-  <div class="section-title">📝 Homework</div>
-  <div class="homework">🏠 ${lesson.homework}</div>
-</div>` : ''}
-
-<div class="footer">
-  <strong>talkova.app</strong> · AI English Tutor · Available 24/7<br/>
-  Practice daily for best results. Consistent study leads to fluency! 🚀
-</div>
-</body>
-</html>`;
-    printWindow.document.write(html);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
-  }
-
-  async function saveNightAudio(encodedScript) {
-    const script = decodeURIComponent(encodedScript);
-    showToast('💾 Generating audio file...');
-    try {
-      const res = await fetch('/.netlify/functions/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tts: script, tutorName: tutor.name })
-      });
-      const data = await res.json();
-      if (data.audio) {
-        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(audioBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `talkova-night-audio-${new Date().toLocaleDateString('en-US').replace(/\//g,'-')}.mp3`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('✅ Audio saved! Play at 25% volume before sleep.');
-      }
-    } catch(e) {
-      showToast('Could not save audio. Try again.');
-    }
-  }
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
     --purple:#534AB7;--purple-light:#7F77DD;--purple-pale:#EEEDFE;
     --bg:#0D0C1A;--bg2:#13112A;--bg3:#1A1735;--surface:#211E42;
     --border:rgba(255,255,255,0.08);--text:#F0EFF8;--text-soft:#9B98BE;
-    --text-muted:#5C5A80;--green:#2ECC8A;--red:#FF6B6B;
+    --text-muted:#5C5A80;--green:#2ECC8A;--red:#FF6B6B;--gold:#FFD700;
   }
   body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
   .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--text)}
@@ -474,14 +71,14 @@ ${lesson.homework ? `
   #app{max-width:480px;margin:0 auto;height:calc(100vh - 65px);display:flex;flex-direction:column}
   .ahdr{padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
   .back{background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:20px;line-height:1}
-  .ainfo{display:flex;align-items:center;gap:10px;flex:1}
+  .ainfo{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
   .acirc{width:38px;height:38px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);flex-shrink:0;overflow:hidden}
   .acirc img{width:100%;height:100%;object-fit:cover;border-radius:50%}
   .aname{font-size:15px;font-weight:600}.astat{font-size:12px;color:var(--green)}
   .badge{font-size:11px;background:rgba(83,74,183,.2);color:var(--purple-light);padding:3px 10px;border-radius:999px}
   .avzone{background:var(--bg2);border-bottom:1px solid var(--border);padding:1rem 1.2rem;display:flex;justify-content:center;align-items:center;gap:16px;flex-shrink:0}
   .avframe{width:90px;height:90px;border-radius:50%;border:3px solid var(--purple);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;font-family:'Syne',sans-serif;color:var(--purple-light);transition:box-shadow .3s;flex-shrink:0;overflow:hidden}
-  .avframe img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+  .avframe img{width:100%;height:100%;object-fit:cover;border-radius:50%;transition:filter .4s;pointer-events:none}
   .avframe.spk{animation:talking 0.35s ease-in-out infinite alternate}
   @keyframes talking{
     0%{transform:scale(1) translateY(0px) rotate(0deg);box-shadow:0 0 0 4px rgba(83,74,183,.2),0 0 12px rgba(127,119,221,.2)}
@@ -497,21 +94,21 @@ ${lesson.homework ? `
     100%{transform:scale(1) translateY(0px);box-shadow:0 0 0 3px rgba(83,74,183,.15)}
   }
   .avframe:not(.spk):not(.listening){animation:breathe 4s ease-in-out infinite}
-  .avframe img{width:100%;height:100%;object-fit:cover;border-radius:50%;transition:filter .4s;pointer-events:none}
   .avframe.spk img{filter:brightness(1.08) saturate(1.15) drop-shadow(0 0 6px rgba(127,119,221,.4))}
-  .avframe.listening{animation:listenPulse 1s ease-in-out infinite}
+  .avframe.listening{animation:listenPulse 1s ease-in-out infinite;box-shadow:0 0 0 8px rgba(255,107,107,.25),0 0 0 16px rgba(255,107,107,.1);border-color:var(--red)}
   @keyframes listenPulse{
     0%,100%{transform:scale(1);box-shadow:0 0 0 4px rgba(255,107,107,.2)}
     50%{transform:scale(1.03);box-shadow:0 0 0 10px rgba(255,107,107,.35),0 0 20px rgba(255,107,107,.3)}
   }
-  .avframe.listening{box-shadow:0 0 0 8px rgba(255,107,107,.25),0 0 0 16px rgba(255,107,107,.1);border-color:var(--red)}
+  @media (prefers-reduced-motion:reduce){
+    .avframe,.avframe.spk,.avframe.listening,.avframe:not(.spk):not(.listening){animation:none}
+  }
   .voice-controls{display:flex;flex-direction:column;align-items:center;gap:6px}
   .voice-label{font-size:11px;color:var(--text-muted);text-align:center}
   .vol-row{display:flex;align-items:center;gap:8px}
   .vol-icon{font-size:14px}
-  .vol-slider{-webkit-appearance:none;width:80px;height:4px;border-radius:2px;background:var(--surface);outline:none}
+  .vol-slider{-webkit-appearance:none;appearance:none;width:80px;height:4px;border-radius:2px;background:var(--surface);outline:none}
   .vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--purple-light);cursor:pointer}
-  /* Lang mode pill */
   .lang-mode{display:flex;background:var(--surface);border-radius:999px;padding:2px;gap:2px;border:1px solid var(--border)}
   .lang-opt{font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;cursor:pointer;border:none;background:none;color:var(--text-muted);transition:all .2s}
   .lang-opt.active{background:var(--purple);color:white}
@@ -533,15 +130,22 @@ ${lesson.homework ? `
   .sbtn:hover{background:var(--purple-light)}
   .micbtn{width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:18px}
   .micbtn:hover{border-color:var(--purple-light)}
+  .micbtn.locked{opacity:.45}
   .micbtn.active{background:var(--red);border-color:var(--red);animation:micpulse 1s infinite}
   @keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,107,.4)}50%{box-shadow:0 0 0 8px rgba(255,107,107,0)}}
   .spk-toggle{width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;flex-shrink:0}
   .spk-toggle.on{border-color:var(--purple-light);background:rgba(83,74,183,.2)}
-  .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--green);color:white;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:500;white-space:nowrap;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+  .spk-toggle.locked{opacity:.45}
+  .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--green);color:white;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:500;max-width:90vw;text-align:center;z-index:2500;opacity:0;transition:opacity .3s;pointer-events:none}
   .toast.show{opacity:1}
+  button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--purple-light);outline-offset:2px}
 
-  /* Auth screen */
-  #authScreen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+  .plan-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;border:none}
+  .plan-free{background:var(--surface);color:var(--text-muted)}
+  .plan-pro{background:rgba(83,74,183,.25);color:var(--purple-light)}
+  .plan-premium{background:linear-gradient(135deg,var(--purple),#9B59B6);color:white}
+
+  #authScreen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:none;align-items:center;justify-content:center;padding:1.5rem}
   .auth-box{width:100%;max-width:380px;background:var(--bg2);border:1px solid var(--border);border-radius:24px;padding:2rem}
   .auth-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:var(--text);text-align:center;margin-bottom:0.5rem}
   .auth-logo span{color:var(--purple-light)}
@@ -556,14 +160,11 @@ ${lesson.homework ? `
   .auth-btn:hover{background:var(--purple-light)}
   .auth-err{font-size:12px;color:var(--red);text-align:center;margin-top:8px;min-height:18px}
   .auth-loading{opacity:0.6;pointer-events:none}
-  /* User info in nav */
   .user-info{display:flex;align-items:center;gap:8px}
   .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;cursor:pointer}
   .logout-btn{font-size:12px;color:var(--text-muted);background:none;border:1px solid var(--border);padding:5px 12px;border-radius:999px;cursor:pointer;transition:all .2s}
   .logout-btn:hover{border-color:var(--red);color:var(--red)}
 
-
-  /* Pricing section */
   #pricing{padding:4rem 1.5rem;text-align:center;background:var(--bg)}
   .pricing-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(28px,4vw,42px);margin-bottom:0.5rem}
   .pricing-sub{font-size:16px;color:var(--text-soft);margin-bottom:3rem}
@@ -588,25 +189,19 @@ ${lesson.homework ? `
   .plan-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
   .plan-features li.no::before{content:'✕';color:var(--text-muted)}
   .plan-features li.no{color:var(--text-muted)}
-  /* Legal section */
   .legal-section{padding:2rem 1.5rem;max-width:800px;margin:0 auto;text-align:center}
   .legal-links{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:1rem}
   .legal-links a{font-size:12px;color:var(--text-muted);text-decoration:none}
   .legal-links a:hover{color:var(--text)}
   .legal-copy{font-size:12px;color:var(--text-muted)}
 
-  /* Progress panel */
-  .progress-bar{height:4px;background:var(--surface);border-radius:2px;overflow:hidden;margin-top:4px}
-  .progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--purple-light));border-radius:2px;transition:width .5s ease}
   .level-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.06em}
   .level-beginner{background:rgba(46,204,138,.15);color:var(--green)}
   .level-intermediate{background:rgba(83,74,183,.15);color:var(--purple-light)}
-  .level-advanced{background:rgba(255,200,0,.15);color:#FFD700}
-  /* Progress notification */
+  .level-advanced{background:rgba(255,215,0,.15);color:var(--gold)}
   .progress-toast{position:fixed;top:80px;right:16px;background:var(--bg2);border:1px solid var(--purple);border-radius:12px;padding:10px 14px;font-size:12px;z-index:998;opacity:0;transition:opacity .3s;pointer-events:none;max-width:200px}
   .progress-toast.show{opacity:1}
 
-  /* Lesson summary modal */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:none;align-items:center;justify-content:center;padding:1rem}
   .modal-overlay.show{display:flex}
   .modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto;padding:1.5rem}
@@ -632,6 +227,10 @@ ${lesson.homework ? `
   .end-session-btn{display:block;width:100%;padding:12px;font-size:14px;font-weight:600;background:var(--surface);color:var(--text-soft);border:1px solid var(--border);border-radius:12px;cursor:pointer;text-align:center;margin-top:8px}
   .end-session-btn:hover{border-color:var(--purple);color:var(--text)}
   .loading-lesson{text-align:center;padding:2rem;color:var(--text-muted)}
+  .locked-box{background:var(--bg3);border:1px dashed rgba(83,74,183,.5);border-radius:12px;padding:1.2rem;text-align:center;margin-bottom:1rem}
+  .locked-title{font-size:13px;font-weight:600;margin-bottom:6px}
+  .locked-text{font-size:12px;color:var(--text-soft);line-height:1.5;margin-bottom:12px}
+  .locked-btn{width:100%;padding:10px;font-size:13px;font-weight:600;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--purple),#9B59B6);color:white}
 </style>
 </head>
 <body>
@@ -663,14 +262,14 @@ ${lesson.homework ? `
   <section class="ts">
     <p class="slabel">Choose your tutor</p>
     <div class="trow">
-      <div class="tc sel" onclick="selectTutor(this,'Maya','M','Warm & bilingual. Grew up speaking Spanish, now teaches English.','Warm & bilingual. Grew up speaking Spanish.')">
-        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" alt="Maya"/><div class="tn">Maya</div><div class="td">Warm & bilingual. Grew up speaking Spanish.</div>
+      <div class="tc sel" onclick="selectTutor(this,'Maya')">
+        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" alt="Maya"/><div class="tn">Maya</div><div class="td">Warm &amp; bilingual. Grew up speaking Spanish.</div>
       </div>
-      <div class="tc" onclick="selectTutor(this,'Leo','L','Cool & energetic. Makes every lesson feel like a real conversation.','Cool & energetic. Lessons that feel like a hang.')">
-        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048711/IMG_3609_xilebh.png" alt="Leo"/><div class="tn">Leo</div><div class="td">Cool & energetic. Lessons that feel like a hang.</div>
+      <div class="tc" onclick="selectTutor(this,'Leo')">
+        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048711/IMG_3609_xilebh.png" alt="Leo"/><div class="tn">Leo</div><div class="td">Cool &amp; energetic. Lessons that feel like a hang.</div>
       </div>
-      <div class="tc" onclick="selectTutor(this,'Nova','N','Patient & clear. Perfect for learners starting from zero.','Patient & clear. Perfect for total beginners.')">
-        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048595/IMG_3607_xstecn.png" alt="Nova"/><div class="tn">Nova</div><div class="td">Patient & clear. Perfect for total beginners.</div>
+      <div class="tc" onclick="selectTutor(this,'Nova')">
+        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048595/IMG_3607_xstecn.png" alt="Nova"/><div class="tn">Nova</div><div class="td">Patient &amp; clear. Perfect for total beginners.</div>
       </div>
     </div>
     <div class="dbox">
@@ -691,13 +290,11 @@ ${lesson.homework ? `
     <div class="feat"><div class="fi">📈</div><div class="ft">Track your growth</div><div class="fd">See your progress week by week.</div></div>
   </div>
 
-  <!-- Pricing Section -->
   <section id="pricing">
     <h2 class="pricing-title">Simple, honest pricing</h2>
     <p class="pricing-sub">Start free. Upgrade when you're ready.</p>
     <div class="pricing-grid">
 
-      <!-- Free Plan -->
       <div class="plan">
         <div class="plan-name">Free</div>
         <div class="plan-price">$0<span>/mo</span></div>
@@ -713,7 +310,6 @@ ${lesson.homework ? `
         </ul>
       </div>
 
-      <!-- Pro Plan -->
       <div class="plan popular">
         <div class="plan-badge">⭐ Most popular</div>
         <div class="plan-name">Pro</div>
@@ -730,7 +326,6 @@ ${lesson.homework ? `
         </ul>
       </div>
 
-      <!-- Premium Plan -->
       <div class="plan">
         <div class="plan-name">Premium</div>
         <div class="plan-price">$19.99<span>/mo</span></div>
@@ -748,7 +343,6 @@ ${lesson.homework ? `
 
     </div>
 
-    <!-- Legal & Policy -->
     <div class="legal-section" style="margin-top:3rem">
       <div class="legal-links">
         <a href="#terms">Terms of Service</a>
@@ -764,24 +358,23 @@ ${lesson.homework ? `
 
 <div id="app" class="screen">
   <div class="ahdr">
-    <button class="back" onclick="showLanding()">←</button>
+    <button class="back" onclick="showLanding()" aria-label="Back">←</button>
     <div class="ainfo">
       <div class="acirc" id="appAv"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:38px;height:38px;border-radius:50%;object-fit:cover"/></div>
       <div><div class="aname" id="appName">Maya</div><div class="astat" id="appStat">● Online</div></div>
     </div>
-    <button class="spk-toggle on" id="spkToggle" onclick="toggleSpeaker()" title="Toggle tutor voice">🔊</button>
-    <button style="background:none;border:1px solid var(--border);border-radius:999px;color:var(--text-soft);font-size:11px;padding:4px 10px;cursor:pointer" onclick="endSession()" title="End session & get lesson summary">End</button>
-    <span class="badge level-badge level-beginner" id="levelBadge">Beginner</span>
+    <button class="spk-toggle on" id="spkToggle" onclick="toggleSpeaker()" title="Tutor voice">🔊</button>
+    <button style="background:none;border:1px solid var(--border);border-radius:999px;color:var(--text-soft);font-size:11px;padding:4px 10px;cursor:pointer" onclick="endSession()" title="End session and get your lesson">End</button>
+    <button class="plan-pill plan-free" id="planPill" onclick="showUpgrade()">Free</button>
   </div>
   <div class="avzone">
     <div class="avframe" id="avFrame"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:90px;height:90px;border-radius:50%;object-fit:cover"/></div>
     <div class="voice-controls">
       <div class="vol-row">
         <span class="vol-icon">🔈</span>
-        <input type="range" class="vol-slider" id="volSlider" min="0" max="1" step="0.05" value="1.0" oninput="updateVolume(this.value)">
+        <input type="range" class="vol-slider" id="volSlider" min="0" max="1" step="0.05" value="1.0" oninput="updateVolume(this.value)" aria-label="Tutor volume">
         <span class="vol-icon">🔊</span>
       </div>
-      <!-- Mic language selector -->
       <div class="lang-mode">
         <button class="lang-opt active" id="langEn" onclick="setMicLang('en-US')">🎤 English</button>
         <button class="lang-opt" id="langEs" onclick="setMicLang('es-US')">🆘 Ayuda</button>
@@ -793,8 +386,8 @@ ${lesson.homework ? `
   <div class="carea" id="chatArea"></div>
   <div class="iarea">
     <button class="micbtn" id="micBtn" onclick="toggleMic()" title="Tap to speak">🎤</button>
-    <textarea class="cinput" id="chatInput" rows="1" placeholder="Type or tap 🎤 to speak in English..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-    <button class="sbtn" onclick="sendMessage()">
+    <textarea class="cinput" id="chatInput" rows="1" placeholder="Type or tap 🎤 to speak in English..." onkeydown="handleKey(event)" oninput="autoResize(this)" aria-label="Message"></textarea>
+    <button class="sbtn" onclick="sendMessage()" aria-label="Send">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
     </button>
   </div>
@@ -803,24 +396,333 @@ ${lesson.homework ? `
 <div class="toast" id="toast"></div>
 <div class="progress-toast" id="progressToast"></div>
 
+<div class="modal-overlay" id="lessonModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📚 Today's Lesson</div>
+      <button class="modal-close" onclick="closeLessonModal()" aria-label="Close">✕</button>
+    </div>
+    <div id="lessonContent">
+      <div class="loading-lesson">⏳ Generating your lesson summary...</div>
+    </div>
+  </div>
+</div>
+
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">talk<span>ova</span></div>
+    <p class="auth-sub">Your AI English tutor, available 24/7</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign in</button>
+      <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Sign up</button>
+    </div>
+    <div id="loginForm">
+      <input class="auth-input" type="email" id="loginEmail" placeholder="your@email.com"/>
+      <input class="auth-input" type="password" id="loginPassword" placeholder="Password"/>
+      <button class="auth-btn" onclick="handleLogin()">Sign in →</button>
+    </div>
+    <div id="registerForm" style="display:none">
+      <input class="auth-input" type="text" id="regName" placeholder="Your name"/>
+      <input class="auth-input" type="email" id="regEmail" placeholder="your@email.com"/>
+      <input class="auth-input" type="password" id="regPassword" placeholder="Create a password (min 6 chars)"/>
+      <button class="auth-btn" onclick="handleRegister()">Create account →</button>
+    </div>
+    <p class="auth-err" id="authErr"></p>
+  </div>
+</div>
+
 <script>
+/* ============================================================
+   TALKOVA — application script
+   Every call to a Netlify function carries the Supabase session
+   token. The server reads identity and plan from that token, so
+   nothing here is trusted for access control.
+   ============================================================ */
+
+  const FREE_DAILY_LIMIT = 5;
+
   const tutorData = {
     Maya: { name:'Maya', initial:'M', desc:'Warm & bilingual. Grew up speaking Spanish, now teaches English.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png' },
     Leo:  { name:'Leo',  initial:'L', desc:'Cool & energetic. Makes every lesson feel like a real conversation.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048711/IMG_3609_xilebh.png' },
     Nova: { name:'Nova', initial:'N', desc:'Patient & clear. Perfect for learners starting from zero.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048595/IMG_3607_xstecn.png' }
   };
+
   let tutor = tutorData.Maya;
-  let history = [];
+  let chatHistory = [];
   let loading = false;
   let speakerOn = true;
   let currentVolume = 1.0;
-  let micLang = 'en-US'; // Default: student speaks English for evaluation
-
+  let micLang = 'en-US';
   let currentAudio = null;
+  let nightAudio = null;
+  let currentLesson = null;
+
+  let userPlan = 'free';
+  let dailySessions = 0;
+  let currentConversationId = null;
+  let sessionStart = Date.now();
+
+  function planAllows(feature) {
+    if (feature === 'voice')     return userPlan === 'pro' || userPlan === 'premium';
+    if (feature === 'night')     return userPlan === 'premium';
+    if (feature === 'unlimited') return userPlan === 'pro' || userPlan === 'premium';
+    return true;
+  }
+
+  function showUpgrade() {
+    closeLessonModal();
+    showLanding();
+    document.getElementById('pricing')?.scrollIntoView({ behavior:'smooth' });
+  }
+
+  function refreshPlanUI() {
+    const pill = document.getElementById('planPill');
+    if (pill) {
+      pill.textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+      pill.className = 'plan-pill plan-' + userPlan;
+    }
+    const voiceOk = planAllows('voice');
+    const mic = document.getElementById('micBtn');
+    const spk = document.getElementById('spkToggle');
+    if (mic) { mic.classList.toggle('locked', !voiceOk); mic.textContent = voiceOk ? '🎤' : '🔒'; mic.title = voiceOk ? 'Tap to speak' : 'Voice is a Pro feature'; }
+    if (spk) spk.classList.toggle('locked', !voiceOk);
+    if (!voiceOk) speakerOn = false;
+    const lbl = document.getElementById('voiceLabel');
+    if (lbl && !voiceOk) lbl.textContent = 'Voice practice is included in Pro';
+  }
+
+/* ------------------------------------------------------------
+   Supabase auth
+   ------------------------------------------------------------ */
+
+  const SUPABASE_URL = 'https://gobrwixmtmvcfqyrudih.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_q5EU45ugdQK-qISquQUOPA_9ZKxaFgg';
+
+  let supabaseClient = null;
+  let currentUser = null;
+
+  // Every function call goes through here. getSession() refreshes an
+  // expired token on its own, so the header is always current.
+  async function authHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+    } catch (e) { /* falls through as an unauthenticated call */ }
+    return headers;
+  }
+
+  // Shared handling for the 401 / 402 answers the functions return.
+  function handleApiError(status, data) {
+    if (status === 401) {
+      showToast('Your session expired. Sign in again.');
+      document.getElementById('authScreen').style.display = 'flex';
+      return true;
+    }
+    if (status === 402) {
+      showToast(data?.error || 'That feature needs a paid plan.');
+      if (data?.upgrade) showUpgrade();
+      return true;
+    }
+    return false;
+  }
+
+  async function initSupabase() {
+    try {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) {
+        currentUser = session.user;
+        await showLoggedIn();
+      } else {
+        document.getElementById('authScreen').style.display = 'flex';
+      }
+    } catch (e) {
+      console.error('Supabase init error:', e);
+      document.getElementById('authScreen').style.display = 'none';
+    }
+  }
+
+  async function showLoggedIn() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('navActions').style.display = 'none';
+    document.getElementById('navUser').style.display = 'flex';
+    const initial = (currentUser.user_metadata?.name || currentUser.email || 'U')[0].toUpperCase();
+    document.getElementById('navUserAvatar').textContent = initial;
+    await loadUserPlan();
+    refreshPlanUI();
+  }
+
+  async function loadUserPlan() {
+    if (!currentUser || !supabaseClient) return;
+    try {
+      const { data, error } = await supabaseClient
+        .from('users').select('plan, level').eq('id', currentUser.id).maybeSingle();
+      if (!error && data) {
+        userPlan = (data.plan || 'free').toLowerCase();
+        if (data.level) {
+          const badge = document.getElementById('levelBadge');
+          if (badge) { badge.textContent = data.level; badge.className = 'badge level-badge level-' + data.level.toLowerCase(); }
+        }
+      }
+    } catch (e) { console.error('Plan load error:', e); }
+    await loadDailyCount();
+  }
+
+  async function loadDailyCount() {
+    if (!currentUser || !supabaseClient) return;
+    try {
+      const start = new Date(); start.setHours(0,0,0,0);
+      const { count, error } = await supabaseClient
+        .from('conversations')
+        .select('id', { count:'exact', head:true })
+        .eq('user_id', currentUser.id)
+        .gte('created_at', start.toISOString());
+      dailySessions = error ? 0 : (count || 0);
+    } catch (e) { dailySessions = 0; }
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+    document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+    document.getElementById('authErr').textContent = '';
+  }
+
+  async function handleLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const err = document.getElementById('authErr');
+    err.style.color = 'var(--red)';
+    if (!email || !password) { err.textContent = 'Enter your email and password.'; return; }
+    const btn = document.querySelector('#loginForm .auth-btn');
+    btn.textContent = 'Signing in...'; btn.classList.add('auth-loading');
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    btn.textContent = 'Sign in →'; btn.classList.remove('auth-loading');
+    if (error) { err.textContent = error.message; return; }
+    currentUser = data.user;
+    await showLoggedIn();
+  }
+
+  async function handleRegister() {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const err = document.getElementById('authErr');
+    err.style.color = 'var(--red)';
+    if (!name || !email || !password) { err.textContent = 'Fill in every field to continue.'; return; }
+    if (password.length < 6) { err.textContent = 'Use at least 6 characters for your password.'; return; }
+    const btn = document.querySelector('#registerForm .auth-btn');
+    btn.textContent = 'Creating account...'; btn.classList.add('auth-loading');
+    const { data, error } = await supabaseClient.auth.signUp({ email, password, options:{ data:{ name } } });
+    btn.textContent = 'Create account →'; btn.classList.remove('auth-loading');
+    if (error) { err.textContent = error.message; return; }
+
+    // The users row comes from the on_auth_user_created trigger. Inserting it
+    // from the browser fails under RLS when email confirmation is on.
+
+    if (!data.session) {
+      err.style.color = 'var(--green)';
+      err.textContent = 'Check your email to confirm your account, then sign in.';
+      return;
+    }
+    currentUser = data.user;
+    err.style.color = 'var(--green)';
+    err.textContent = 'Account created. Welcome to Talkova 🎉';
+    setTimeout(() => showLoggedIn(), 1200);
+  }
+
+  async function handleLogout() {
+    await supabaseClient.auth.signOut();
+    currentUser = null;
+    userPlan = 'free';
+    dailySessions = 0;
+    currentConversationId = null;
+    chatHistory = [];
+    document.getElementById('chatArea').innerHTML = '';
+    document.getElementById('navActions').style.display = 'flex';
+    document.getElementById('navUser').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+    refreshPlanUI();
+    showLanding();
+  }
+
+  // One row per session: insert the first time, update after that.
+  async function saveConversation() {
+    if (!currentUser || !supabaseClient) return;
+    const duration = Math.round((Date.now() - sessionStart) / 1000);
+    try {
+      if (!currentConversationId) {
+        const { data, error } = await supabaseClient
+          .from('conversations')
+          .insert({
+            user_id: currentUser.id,
+            tutor_name: tutor.name,
+            messages: chatHistory,
+            errors_made: [],
+            duration_seconds: duration
+          })
+          .select('id').single();
+        if (error) { console.error('Save conversation error:', error); return; }
+        currentConversationId = data.id;
+        dailySessions++;
+        await bumpTotalConversations();
+      } else {
+        const { error } = await supabaseClient
+          .from('conversations')
+          .update({ messages: chatHistory, duration_seconds: duration })
+          .eq('id', currentConversationId);
+        if (error) console.error('Update conversation error:', error);
+      }
+    } catch (e) { console.error('Save conversation error:', e); }
+  }
+
+  async function bumpTotalConversations() {
+    try {
+      const { data } = await supabaseClient
+        .from('users').select('total_conversations').eq('id', currentUser.id).maybeSingle();
+      await supabaseClient.from('users')
+        .update({ total_conversations: (data?.total_conversations || 0) + 1 })
+        .eq('id', currentUser.id);
+    } catch (e) { /* non-critical */ }
+  }
+
+/* ------------------------------------------------------------
+   Stripe checkout
+   ------------------------------------------------------------ */
+
+  async function handleCheckout(plan) {
+    if (!currentUser) {
+      showToast('Sign in first to subscribe.');
+      document.getElementById('authScreen').style.display = 'flex';
+      return;
+    }
+    showToast('Opening secure checkout...');
+    try {
+      const res = await fetch('/.netlify/functions/create-checkout', {
+        method:'POST',
+        headers: await authHeaders(),
+        body: JSON.stringify({ plan })   // the price is resolved server-side
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (!handleApiError(res.status, data)) showToast(data.error || 'Checkout did not open.');
+        return;
+      }
+      if (data.url) window.location.href = data.url;
+      else showToast('Checkout did not open. Try again in a moment.');
+    } catch (e) {
+      showToast('Could not reach the payment system.');
+    }
+  }
+
+/* ------------------------------------------------------------
+   Voice
+   ------------------------------------------------------------ */
 
   async function speak(text) {
-    if (!speakerOn) return;
-    // Stop any current audio
+    if (!speakerOn || !planAllows('voice')) return;
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
 
     document.getElementById('avFrame').classList.add('spk');
@@ -829,38 +731,32 @@ ${lesson.homework ? `
 
     try {
       const res = await fetch('/.netlify/functions/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tts: text, tutorName: tutor.name })
+        method:'POST',
+        headers: await authHeaders(),
+        body: JSON.stringify({ tts: text, tutorName: tutor.name, mode:'tutor' })
       });
       const data = await res.json();
+      if (!res.ok || !data.audio) throw new Error('No audio');
 
-      if (data.audio) {
-        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audioEl = document.getElementById('tutorAudio');
-        audioEl.src = audioUrl;
-        audioEl.volume = currentVolume;
-        currentAudio = audioEl;
-        audioEl.onended = () => {
-          document.getElementById('avFrame').classList.remove('spk');
-          URL.revokeObjectURL(audioUrl);
-          setTimeout(() => {
-            document.getElementById('appStat').textContent = '● Online — your turn';
-            document.getElementById('appStat').style.color = 'var(--green)';
-          }, 1500);
-        };
-        const playPromise = audioEl.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(() => {
-            setTimeout(() => audioEl.play().catch(e => console.log('Audio play failed:', e)), 300);
-          });
-        }
-      } else {
-        throw new Error('No audio');
+      const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type:'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audioEl = document.getElementById('tutorAudio');
+      audioEl.src = audioUrl;
+      audioEl.volume = currentVolume;
+      currentAudio = audioEl;
+      audioEl.onended = () => {
+        document.getElementById('avFrame').classList.remove('spk');
+        URL.revokeObjectURL(audioUrl);
+        setTimeout(() => {
+          document.getElementById('appStat').textContent = '● Online — your turn';
+          document.getElementById('appStat').style.color = 'var(--green)';
+        }, 1500);
+      };
+      const playPromise = audioEl.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => setTimeout(() => audioEl.play().catch(e => console.log('Audio play failed:', e)), 300));
       }
     } catch (e) {
-      // Fallback to Web Speech API
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
       utter.volume = currentVolume;
@@ -875,12 +771,15 @@ ${lesson.homework ? `
   }
 
   function toggleSpeaker() {
+    if (!planAllows('voice')) { showToast('Voice conversations are included in Pro.'); showUpgrade(); return; }
     speakerOn = !speakerOn;
     const btn = document.getElementById('spkToggle');
     if (speakerOn) { btn.classList.add('on'); btn.textContent = '🔊'; }
     else {
       btn.classList.remove('on'); btn.textContent = '🔇';
-      const audioEl = document.getElementById('tutorAudio'); if (audioEl) { audioEl.pause(); audioEl.src = ''; } currentAudio = null;
+      const audioEl = document.getElementById('tutorAudio');
+      if (audioEl) { audioEl.pause(); audioEl.src = ''; }
+      currentAudio = null;
       window.speechSynthesis.cancel();
       document.getElementById('avFrame').classList.remove('spk');
       document.getElementById('appStat').textContent = '● Online';
@@ -896,6 +795,7 @@ ${lesson.homework ? `
     const inp = document.getElementById('chatInput');
     document.getElementById('langEn').classList.toggle('active', lang === 'en-US');
     document.getElementById('langEs').classList.toggle('active', lang === 'es-US');
+    if (!planAllows('voice')) { lbl.textContent = 'Voice practice is included in Pro'; return; }
     if (lang === 'en-US') {
       lbl.textContent = 'Speak English — tutor evaluates you';
       inp.placeholder = 'Type or tap 🎤 to speak in English...';
@@ -905,7 +805,6 @@ ${lesson.homework ? `
     }
   }
 
-  // Speech Recognition
   let recognition = null;
   let isListening = false;
 
@@ -919,62 +818,63 @@ ${lesson.homework ? `
     r.onstart = () => {
       isListening = true;
       document.getElementById('micBtn').classList.add('active');
-
       document.getElementById('avFrame').classList.add('listening');
       document.getElementById('appStat').textContent = micLang === 'en-US' ? '● Listening in English...' : '● Escuchando en español...';
       document.getElementById('appStat').style.color = 'var(--red)';
       window.speechSynthesis.cancel();
     };
-
     let finalTranscript = '';
     r.onresult = (e) => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalTranscript += t;
-        else interim += t;
+        if (e.results[i].isFinal) finalTranscript += t; else interim += t;
       }
       document.getElementById('chatInput').value = finalTranscript || interim;
     };
     r.onend = () => {
       isListening = false;
       document.getElementById('micBtn').classList.remove('active');
-
       document.getElementById('avFrame').classList.remove('listening');
       document.getElementById('appStat').textContent = '● Online';
       document.getElementById('appStat').style.color = 'var(--green)';
-      const text = document.getElementById('chatInput').value.trim();
-      if (text) sendMessage();
+      if (document.getElementById('chatInput').value.trim()) sendMessage();
     };
     r.onerror = (e) => {
       isListening = false;
       document.getElementById('micBtn').classList.remove('active');
-
       document.getElementById('avFrame').classList.remove('listening');
       document.getElementById('appStat').textContent = '● Online';
       document.getElementById('appStat').style.color = 'var(--green)';
-      if (e.error === 'not-allowed') showToast('Microphone access denied. Please allow it in your browser.');
+      if (e.error === 'not-allowed') showToast('Allow microphone access in your browser to speak.');
     };
     return r;
   }
 
   function toggleMic() {
+    if (!planAllows('voice')) { showToast('Voice conversations are included in Pro.'); showUpgrade(); return; }
     if (!recognition) recognition = initRecognition();
-    if (!recognition) { showToast('Your browser does not support voice input.'); return; }
+    if (!recognition) { showToast('This browser does not support voice input. On iPhone, use Safari.'); return; }
     if (isListening) { recognition.stop(); return; }
-    recognition = initRecognition(); // reinit to apply current micLang
+    recognition = initRecognition();
     recognition.lang = micLang;
     recognition.start();
   }
 
-  function selectTutor(card, name, initial, desc) {
+/* ------------------------------------------------------------
+   Screens and chat
+   ------------------------------------------------------------ */
+
+  function selectTutor(card, name) {
     document.querySelectorAll('.tc').forEach(c => c.classList.remove('sel'));
     card.classList.add('sel');
     tutor = tutorData[name] || tutorData.Maya;
-    history = [];
-    document.getElementById('chatArea') && (document.getElementById('chatArea').innerHTML = '');
-    document.getElementById('demoLabel').textContent = `Live preview — ${name} is online`;
-    document.getElementById('demoName').textContent = name;
+    chatHistory = [];
+    currentConversationId = null;
+    const area = document.getElementById('chatArea');
+    if (area) area.innerHTML = '';
+    document.getElementById('demoLabel').textContent = `Live preview — ${tutor.name} is online`;
+    document.getElementById('demoName').textContent = tutor.name;
     document.getElementById('demoAv').innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
     document.getElementById('demoAv2').innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
   }
@@ -985,14 +885,19 @@ ${lesson.homework ? `
     document.getElementById('appAv').innerHTML = `<img src="${tutor.img}" style="width:38px;height:38px;border-radius:50%;object-fit:cover"/>`;
     document.getElementById('appName').textContent = tutor.name;
     document.getElementById('avFrame').innerHTML = `<img src="${tutor.img}" style="width:90px;height:90px;border-radius:50%;object-fit:cover"/>`;
-    // Request mic permission proactively
-    navigator.mediaDevices && navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => { stream.getTracks().forEach(t => t.stop()); })
-      .catch(() => {});
-    if (history.length === 0) {
+    refreshPlanUI();
+    sessionStart = Date.now();
+
+    if (planAllows('voice') && navigator.mediaDevices) {
+      navigator.mediaDevices.getUserMedia({ audio:true })
+        .then(stream => stream.getTracks().forEach(t => t.stop()))
+        .catch(() => {});
+    }
+
+    if (chatHistory.length === 0) {
       const greeting = `Hi! I'm ${tutor.name} 👋 I'm your English tutor at Talkova. You can type or use the 🎤 microphone to speak — whatever feels comfortable! What would you like to practice today?`;
       addMessage('ai', greeting);
-      history.push({ role:'assistant', content: greeting });
+      chatHistory.push({ role:'assistant', content: greeting });
       setTimeout(() => speak(greeting), 400);
     }
   }
@@ -1005,8 +910,8 @@ ${lesson.homework ? `
 
   function joinWaitlist() {
     const email = document.getElementById('emailInput').value.trim();
-    if (!email.includes('@')) { showToast('Please enter a valid email 📧'); return; }
-    showToast("¡You're on the list! We'll be in touch 🎉");
+    if (!email.includes('@')) { showToast('Enter a valid email address 📧'); return; }
+    showToast("You're on the list. We'll be in touch 🎉");
     document.getElementById('emailInput').value = '';
   }
 
@@ -1019,13 +924,13 @@ ${lesson.homework ? `
   function addMessage(role, text) {
     const area = document.getElementById('chatArea');
     const div = document.createElement('div');
-    div.className = `msg${role==='user'?' u':''}`;
+    div.className = `msg${role === 'user' ? ' u' : ''}`;
     const av = document.createElement('div');
     av.className = 'mav';
-    if (role==='user') { av.style.background='var(--purple)'; av.style.color='white'; av.textContent='U'; }
+    if (role === 'user') { av.style.background = 'var(--purple)'; av.style.color = 'white'; av.textContent = 'U'; }
     else { av.innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`; }
     const bbl = document.createElement('div');
-    bbl.className = `bbl ${role==='user'?'usr':'ai'}`;
+    bbl.className = `bbl ${role === 'user' ? 'usr' : 'ai'}`;
     bbl.textContent = text;
     div.appendChild(av); div.appendChild(bbl);
     area.appendChild(div);
@@ -1035,208 +940,21 @@ ${lesson.homework ? `
   function addTyping() {
     const area = document.getElementById('chatArea');
     const div = document.createElement('div');
-    div.className='msg'; div.id='typing';
-    const av = document.createElement('div'); av.className='mav'; av.innerHTML=`<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
-    const t = document.createElement('div'); t.className='typing';
-    t.innerHTML='<div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>';
+    div.className = 'msg'; div.id = 'typing';
+    const av = document.createElement('div');
+    av.className = 'mav';
+    av.innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
+    const t = document.createElement('div');
+    t.className = 'typing';
+    t.innerHTML = '<div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>';
     div.appendChild(av); div.appendChild(t);
     area.appendChild(div); area.scrollTop = area.scrollHeight;
   }
 
-  function removeTyping() { const t=document.getElementById('typing'); if(t) t.remove(); }
-
-  async function sendMessage() {
-    if (loading) return;
-    const input = document.getElementById('chatInput');
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = ''; input.style.height = 'auto';
-    addMessage('user', text);
-    history.push({ role:'user', content: text });
-    loading = true; addTyping();
-    try {
-      const res = await fetch('/.netlify/functions/chat', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ messages: history, tutorName: tutor.name, tutorDesc: tutor.desc })
-      });
-      const data = await res.json();
-      removeTyping();
-      const reply = data.content || 'Oops! Something went wrong.';
-      addMessage('ai', reply);
-      history.push({ role:'assistant', content: reply });
-      speak(reply);
-    } catch {
-      removeTyping();
-      addMessage('ai', 'Oops! Something went wrong. Try again.');
-    }
-    loading = false;
-  }
-
-  function handleKey(e) {
-    if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-  }
-
-  function autoResize(el) {
-    el.style.height='auto';
-    el.style.height = Math.min(el.scrollHeight,100)+'px';
-  }
-
-
-
-  // --- Supabase Auth ---
-  const SUPABASE_URL = 'https://gobrwixmtmvcfqyrudih.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_q5EU45ugdQK-qISquQUOPA_9ZKxaFgg';
-  
-  let supabaseClient = null;
-  let currentUser = null;
-
-  async function initSupabase() {
-    try {
-      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session) {
-        currentUser = session.user;
-        showLoggedIn();
-      } else {
-        document.getElementById('authScreen').style.display = 'flex';
-      }
-    } catch(e) {
-      console.error('Supabase init error:', e);
-      // If Supabase not configured, hide auth screen and proceed
-      document.getElementById('authScreen').style.display = 'none';
-    }
-  }
-
-  function showLoggedIn() {
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('navActions').style.display = 'none';
-    document.getElementById('navUser').style.display = 'flex';
-    const initial = (currentUser.user_metadata?.name || currentUser.email || 'U')[0].toUpperCase();
-    document.getElementById('navUserAvatar').textContent = initial;
-  }
-
-  function switchTab(tab) {
-    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
-    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
-    document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
-    document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
-    document.getElementById('authErr').textContent = '';
-  }
-
-  async function handleLogin() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    if (!email || !password) { document.getElementById('authErr').textContent = 'Please fill in all fields.'; return; }
-    const btn = document.querySelector('#loginForm .auth-btn');
-    btn.textContent = 'Signing in...'; btn.classList.add('auth-loading');
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    btn.textContent = 'Sign in →'; btn.classList.remove('auth-loading');
-    if (error) { document.getElementById('authErr').textContent = error.message; return; }
-    currentUser = data.user;
-    showLoggedIn();
-  }
-
-  async function handleRegister() {
-    const name = document.getElementById('regName').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-    const password = document.getElementById('regPassword').value;
-    if (!name || !email || !password) { document.getElementById('authErr').textContent = 'Please fill in all fields.'; return; }
-    if (password.length < 6) { document.getElementById('authErr').textContent = 'Password must be at least 6 characters.'; return; }
-    const btn = document.querySelector('#registerForm .auth-btn');
-    btn.textContent = 'Creating account...'; btn.classList.add('auth-loading');
-    const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { name } } });
-    btn.textContent = 'Create account →'; btn.classList.remove('auth-loading');
-    if (error) { document.getElementById('authErr').textContent = error.message; return; }
-    currentUser = data.user;
-    // Save user to users table
-    await supabaseClient.from('users').insert({ 
-      id: data.user.id, email, name, level: 'Beginner', tutor_preference: tutor.name, total_conversations: 0
-    });
-    document.getElementById('authErr').style.color = 'var(--green)';
-    document.getElementById('authErr').textContent = 'Account created! Welcome to Talkova 🎉';
-    setTimeout(() => showLoggedIn(), 1500);
-  }
-
-  async function handleLogout() {
-    await supabaseClient.auth.signOut();
-    currentUser = null;
-    document.getElementById('navActions').style.display = 'flex';
-    document.getElementById('navUser').style.display = 'none';
-    document.getElementById('authScreen').style.display = 'flex';
-    history = [];
-    showLanding();
-  }
-
-  // Save conversation to Supabase after each AI response
-  async function saveConversation() {
-    if (!currentUser || !supabaseClient) return;
-    try {
-      await supabaseClient.from('conversations').insert({
-        user_id: currentUser.id,
-        tutor_name: tutor.name,
-        messages: history,
-        errors_made: [],
-        duration_seconds: 0
-      });
-      await supabaseClient.from('users').update({ total_conversations: (await supabaseClient.from('users').select('total_conversations').eq('id', currentUser.id).single()).data.total_conversations + 1 }).eq('id', currentUser.id);
-    } catch(e) { console.error('Save conversation error:', e); }
-  }
-
-  // Init on load
-  window.addEventListener('load', initSupabase);
-
-
-  // Register Service Worker for PWA
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
-        .catch(err => console.log('SW registration failed:', err));
-    });
-  }
-
-  // Fix iOS audio - unlock on every user interaction
-  function unlockIOSAudio() {
-    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//OEZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAIAAADnAAjIyMjIyMjIyMjIyMjIyMjTU1NTU1NTU1NTU1NTU1Nd3d3d3d3d3d3d3d3d3d3oaGhoaGhoaGhoaGhoaGhoaurq6urq6urq6urq6urq6u1tbW1tbW1tbW1tbW1tbW13t7e3t7e3t7e3t7e3t7e3v////////////////////////////////8AAAAaTGF2YzU4LjU0AAAAAAAAAAAAAAAA//OEZAAHCAAGkAAAAAAAAA0gAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
-    silentAudio.play().catch(() => {});
-  }
-  document.addEventListener('touchstart', unlockIOSAudio);
-  document.addEventListener('click', unlockIOSAudio);
-
-  // Stripe checkout
-  const STRIPE_PRICES = {
-    pro: 'price_1TxdE62d71ujoUca2P5Zw5gw',
-    premium: 'price_1TxdGQ2d71ujoUcajnlc4ouq'
-  };
-
-  async function handleCheckout(plan) {
-    if (!currentUser) {
-      showToast('Please sign in first to subscribe.');
-      document.getElementById('authScreen').style.display = 'flex';
-      return;
-    }
-    showToast('Redirecting to secure checkout...');
-    try {
-      const res = await fetch('/.netlify/functions/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId: STRIPE_PRICES[plan],
-          userId: currentUser.id,
-          userEmail: currentUser.email
-        })
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else showToast('Error starting checkout. Please try again.');
-    } catch(e) {
-      showToast('Error connecting to payment system.');
-    }
-  }
+  function removeTyping() { const t = document.getElementById('typing'); if (t) t.remove(); }
 
   function updateProgressUI(progress) {
     if (!progress) return;
-    // Update level badge
     if (progress.level) {
       const badge = document.getElementById('levelBadge');
       if (badge) {
@@ -1244,65 +962,133 @@ ${lesson.homework ? `
         badge.className = 'badge level-badge level-' + progress.level.toLowerCase();
       }
     }
-    // Show progress notification if errors were found
     if (progress.errors && progress.errors.length > 0) {
       const toast = document.getElementById('progressToast');
-      toast.innerHTML = `📊 <strong>${progress.errors.length} correction${progress.errors.length > 1 ? 's' : ''}</strong> noted — keep practicing!`;
+      const n = progress.errors.length;
+      toast.innerHTML = `📊 <strong>${n} correction${n > 1 ? 's' : ''}</strong> noted — keep practicing`;
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
   }
 
-  // End session and generate lesson summary
-  async function endSession() {
-    if (history.length < 4) {
-      showToast('Have a longer conversation first!');
+  async function sendMessage() {
+    if (loading) return;
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (!planAllows('unlimited') && !currentConversationId && dailySessions >= FREE_DAILY_LIMIT) {
+      showToast(`Free plan reached ${FREE_DAILY_LIMIT} conversations today. Upgrade to keep going.`);
+      showUpgrade();
       return;
     }
+
+    input.value = ''; input.style.height = 'auto';
+    addMessage('user', text);
+    chatHistory.push({ role:'user', content: text });
+    loading = true; addTyping();
+
+    try {
+      const res = await fetch('/.netlify/functions/chat', {
+        method:'POST',
+        headers: await authHeaders(),
+        body: JSON.stringify({
+          messages: chatHistory,
+          tutorName: tutor.name,
+          tutorDesc: tutor.desc
+        })
+      });
+      const data = await res.json();
+      removeTyping();
+
+      if (!res.ok) {
+        chatHistory.pop();               // the tutor never answered
+        if (!handleApiError(res.status, data)) {
+          addMessage('ai', data.error || 'Something went wrong on our side. Send that again.');
+        }
+        loading = false;
+        return;
+      }
+
+      const reply = data.content || 'Something went wrong on our side. Send that again.';
+      addMessage('ai', reply);
+      chatHistory.push({ role:'assistant', content: reply });
+      if (data.plan && data.plan !== userPlan) { userPlan = data.plan; refreshPlanUI(); }
+      updateProgressUI(data.progress);
+      speak(reply);
+      saveConversation();
+    } catch {
+      removeTyping();
+      addMessage('ai', 'Something went wrong on our side. Send that again.');
+    }
+    loading = false;
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+  }
+
+/* ------------------------------------------------------------
+   Lesson summary, night audio, PDF
+   ------------------------------------------------------------ */
+
+  async function endSession() {
+    if (chatHistory.length < 4) { showToast('Practice a little longer first.'); return; }
+
     document.getElementById('lessonModal').classList.add('show');
-    document.getElementById('lessonContent').innerHTML = '<div class="loading-lesson">⏳ Generating your personalized lesson...</div>';
-    
+    document.getElementById('lessonContent').innerHTML = '<div class="loading-lesson">⏳ Building your lesson...</div>';
+
     try {
       const userName = currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || 'Student';
       const res = await fetch('/.netlify/functions/generate-lesson', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method:'POST',
+        headers: await authHeaders(),
         body: JSON.stringify({
-          messages: history,
+          messages: chatHistory,
           tutorName: tutor.name,
-          userId: currentUser?.id || null,
+          conversationId: currentConversationId,
           userName
         })
       });
       const data = await res.json();
-      if (data.lesson) renderLesson(data.lesson);
-      else throw new Error('No lesson data');
-    } catch(e) {
-      document.getElementById('lessonContent').innerHTML = '<div class="loading-lesson">❌ Could not generate lesson. Try again.</div>';
+
+      if (!res.ok) {
+        if (handleApiError(res.status, data)) { closeLessonModal(); return; }
+        document.getElementById('lessonContent').innerHTML =
+          `<div class="loading-lesson">${data.error || 'The lesson did not generate. Close this and tap End again.'}</div>`;
+        return;
+      }
+
+      renderLesson(data.lesson);
+      await saveConversation();
+      currentConversationId = null;   // the next message starts a new session
+      sessionStart = Date.now();
+    } catch (e) {
+      document.getElementById('lessonContent').innerHTML =
+        '<div class="loading-lesson">The lesson did not generate. Close this and tap End again.</div>';
     }
   }
 
-  let currentLesson = null;
   function renderLesson(lesson) {
     currentLesson = lesson;
+    const nightOk = planAllows('night');
     let html = `
       <p class="lesson-date">📅 ${lesson.date} · Tutor: ${lesson.tutorName}</p>
       <h3 style="font-size:16px;margin-bottom:1rem">${lesson.title || 'English Practice Session'}</h3>`;
 
-    // Key phrases
-    if (lesson.key_phrases && lesson.key_phrases.length > 0) {
-      html += `<div class="lesson-section">
-        <div class="lesson-section-title">⭐ Key Phrases Practiced</div>`;
-      lesson.key_phrases.forEach(p => {
-        html += `<div class="phrase-item">💬 ${p}</div>`;
-      });
+    if (lesson.key_phrases?.length) {
+      html += `<div class="lesson-section"><div class="lesson-section-title">⭐ Key Phrases Practiced</div>`;
+      lesson.key_phrases.forEach(p => { html += `<div class="phrase-item">💬 ${p}</div>`; });
       html += `</div>`;
     }
 
-    // Corrections
-    if (lesson.corrections && lesson.corrections.length > 0) {
-      html += `<div class="lesson-section">
-        <div class="lesson-section-title">✏️ Corrections</div>`;
+    if (lesson.corrections?.length) {
+      html += `<div class="lesson-section"><div class="lesson-section-title">✏️ Corrections</div>`;
       lesson.corrections.forEach(c => {
         html += `<div class="correction-item">
           <div class="correction-wrong">❌ ${c.wrong}</div>
@@ -1313,22 +1099,27 @@ ${lesson.homework ? `
       html += `</div>`;
     }
 
-    // Night audio
     if (lesson.night_audio_script) {
-      html += `<div class="lesson-section">
-        <div class="lesson-section-title">🌙 Night Audio</div>
-        <div class="night-audio-box">
-          <div class="night-audio-title">🎧 Listen before sleep at 25% volume</div>
-          <div class="night-audio-text">${lesson.night_audio_script}</div>
-          <div class="night-audio-controls">
-            <button class="night-btn play" onclick="playNightAudio('${encodeURIComponent(lesson.night_audio_script)}')">▶ Play now</button>
-            <button class="night-btn download" onclick="saveNightAudio('${encodeURIComponent(lesson.night_audio_script)}')">💾 Save audio</button>
-          </div>
-        </div>
-      </div>`;
+      html += `<div class="lesson-section"><div class="lesson-section-title">🌙 Night Audio</div>`;
+      if (nightOk) {
+        html += `<div class="night-audio-box">
+            <div class="night-audio-title">🎧 Listen before sleep at 25% volume</div>
+            <div class="night-audio-text">${lesson.night_audio_script}</div>
+            <div class="night-audio-controls">
+              <button class="night-btn play" onclick="playNightAudio()">▶ Play now</button>
+              <button class="night-btn download" onclick="saveNightAudio()">💾 Save audio</button>
+            </div>
+          </div>`;
+      } else {
+        html += `<div class="locked-box">
+            <div class="locked-title">🔒 Included in Premium</div>
+            <div class="locked-text">Your lesson audio plays at 25% volume while you sleep, then you review it in the morning. This is the part that makes the phrases stick.</div>
+            <button class="locked-btn" onclick="showUpgrade()">See Premium →</button>
+          </div>`;
+      }
+      html += `</div>`;
     }
 
-    // Homework
     if (lesson.homework) {
       html += `<div class="lesson-section">
         <div class="lesson-section-title">📝 Homework</div>
@@ -1336,9 +1127,11 @@ ${lesson.homework ? `
       </div>`;
     }
 
-    html += `
-      <button class="night-btn play" style="width:100%;margin-bottom:8px;padding:12px;font-size:14px" onclick="generatePDF(currentLesson)">📄 Download PDF Lesson</button>
-      <button class="end-session-btn" onclick="closeLessonModal()">Close & Continue Practicing</button>`;
+    if (nightOk) {
+      html += `<button class="night-btn play" style="width:100%;margin-bottom:8px;padding:12px;font-size:14px" onclick="generatePDF()">📄 Download PDF lesson</button>`;
+    }
+    html += `<button class="end-session-btn" onclick="closeLessonModal()">Close and keep practicing</button>`;
+
     document.getElementById('lessonContent').innerHTML = html;
   }
 
@@ -1346,32 +1139,59 @@ ${lesson.homework ? `
     document.getElementById('lessonModal').classList.remove('show');
   }
 
-  // Play night audio using ElevenLabs
-  async function playNightAudio(encodedScript) {
-    const script = decodeURIComponent(encodedScript);
+  async function fetchNightAudioBlob(script) {
+    const res = await fetch('/.netlify/functions/chat', {
+      method:'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ tts: script, tutorName: tutor.name, mode:'night' })
+    });
+    const data = await res.json();
+    if (!res.ok) { handleApiError(res.status, data); throw new Error(data.error || 'No audio'); }
+    if (!data.audio) throw new Error('No audio');
+    return new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type:'audio/mpeg' });
+  }
+
+  async function playNightAudio() {
+    if (!planAllows('night')) { showUpgrade(); return; }
+    if (!currentLesson?.night_audio_script) return;
     showToast('🎧 Generating night audio...');
     try {
-      const res = await fetch('/.netlify/functions/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tts: script, tutorName: tutor.name })
-      });
-      const data = await res.json();
-      if (data.audio) {
-        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audio.volume = 0.25; // 25% volume for night listening
-        audio.play();
-        showToast('🌙 Playing at 25% volume — night mode');
-      }
-    } catch(e) {
-      showToast('Could not generate audio. Try again.');
+      const blob = await fetchNightAudioBlob(currentLesson.night_audio_script);
+      if (nightAudio) { nightAudio.pause(); nightAudio = null; }
+      nightAudio = new Audio(URL.createObjectURL(blob));
+      nightAudio.volume = 0.25;
+      nightAudio.loop = true;
+      nightAudio.play();
+      showToast('🌙 Playing on repeat at 25% volume');
+    } catch (e) {
+      showToast('The audio did not generate. Try again.');
     }
   }
 
-  function generatePDF(lesson) {
+  async function saveNightAudio() {
+    if (!planAllows('night')) { showUpgrade(); return; }
+    if (!currentLesson?.night_audio_script) return;
+    showToast('💾 Generating your audio file...');
+    try {
+      const blob = await fetchNightAudioBlob(currentLesson.night_audio_script);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `talkova-night-audio-${new Date().toLocaleDateString('en-US').replace(/\//g,'-')}.mp3`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('✅ Audio saved. Play it at 25% volume before sleep.');
+    } catch (e) {
+      showToast('The audio did not save. Try again.');
+    }
+  }
+
+  function generatePDF() {
+    if (!planAllows('night')) { showUpgrade(); return; }
+    const lesson = currentLesson;
+    if (!lesson) return;
     const printWindow = window.open('', '_blank');
+    if (!printWindow) { showToast('Allow pop-ups to download the PDF.'); return; }
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -1383,7 +1203,7 @@ ${lesson.homework ? `
   .logo{font-size:28px;font-weight:900;color:#534AB7;margin-bottom:4px}
   .logo span{color:#FF6B35}
   .lesson-title{font-size:20px;font-weight:700;margin-bottom:4px}
-  .lesson-meta{font-size:13px;color:#666;margin-bottom:0}
+  .lesson-meta{font-size:13px;color:#666}
   .section{margin-bottom:24px}
   .section-title{font-size:12px;font-weight:700;color:#534AB7;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:12px}
   .phrase{background:#f5f5ff;border-left:3px solid #534AB7;padding:8px 12px;margin-bottom:8px;border-radius:0 6px 6px 0;font-size:14px}
@@ -1407,25 +1227,25 @@ ${lesson.homework ? `
 <div class="header">
   <div class="logo">talk<span>ova</span></div>
   <div class="lesson-title">${lesson.title || 'English Practice Session'}</div>
-  <div class="lesson-meta">📅 ${lesson.date} · Tutor: ${lesson.tutorName} · Student: ${lesson.studentName}</div>
+  <div class="lesson-meta">📅 ${lesson.date} · Tutor: ${lesson.tutorName} · Student: ${lesson.studentName || ''}</div>
 </div>
 
 <div class="instructions">
-  <h4>🌙 How to use this lesson for subconscious learning:</h4>
+  <h4>🌙 How to use this lesson for subconscious learning</h4>
   <ol>
-    <li><strong>Before sleep:</strong> Read this PDF out loud while listening to the audio at 25% volume</li>
-    <li><strong>During sleep:</strong> Play the audio on repeat at 25% volume all night</li>
-    <li><strong>Morning:</strong> Read the PDF again and repeat each phrase 3 times out loud</li>
+    <li><strong>Before sleep:</strong> read this page out loud while the audio plays at 25% volume</li>
+    <li><strong>During sleep:</strong> leave the audio on repeat at 25% volume all night</li>
+    <li><strong>Morning:</strong> read the page again and repeat each phrase three times out loud</li>
   </ol>
 </div>
 
-${lesson.key_phrases && lesson.key_phrases.length > 0 ? `
+${lesson.key_phrases?.length ? `
 <div class="section">
   <div class="section-title">⭐ Key Phrases Practiced</div>
   ${lesson.key_phrases.map(p => `<div class="phrase">💬 ${p}</div>`).join('')}
 </div>` : ''}
 
-${lesson.corrections && lesson.corrections.length > 0 ? `
+${lesson.corrections?.length ? `
 <div class="section">
   <div class="section-title">✏️ Corrections to Remember</div>
   ${lesson.corrections.map(c => `
@@ -1438,9 +1258,9 @@ ${lesson.corrections && lesson.corrections.length > 0 ? `
 
 ${lesson.night_audio_script ? `
 <div class="section">
-  <div class="section-title">🎧 Night Audio Script — Read & Listen</div>
+  <div class="section-title">🎧 Night Audio Script — Read and Listen</div>
   <div class="night-audio">
-    <div class="night-title">🌙 Listen to this at 25% volume before and during sleep</div>
+    <div class="night-title">🌙 Play this at 25% volume before and during sleep</div>
     <div class="night-text">${lesson.night_audio_script}</div>
   </div>
 </div>` : ''}
@@ -1453,7 +1273,7 @@ ${lesson.homework ? `
 
 <div class="footer">
   <strong>talkova.app</strong> · AI English Tutor · Available 24/7<br/>
-  Practice daily for best results. Consistent study leads to fluency! 🚀
+  Practice daily. Consistency is what turns phrases into fluency 🚀
 </div>
 </body>
 </html>`;
@@ -1462,67 +1282,26 @@ ${lesson.homework ? `
     setTimeout(() => printWindow.print(), 500);
   }
 
-  async function saveNightAudio(encodedScript) {
-    const script = decodeURIComponent(encodedScript);
-    showToast('💾 Generating audio file...');
-    try {
-      const res = await fetch('/.netlify/functions/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tts: script, tutorName: tutor.name })
-      });
-      const data = await res.json();
-      if (data.audio) {
-        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(audioBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `talkova-night-audio-${new Date().toLocaleDateString('en-US').replace(/\//g,'-')}.mp3`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('✅ Audio saved! Play at 25% volume before sleep.');
-      }
-    } catch(e) {
-      showToast('Could not save audio. Try again.');
-    }
+/* ------------------------------------------------------------
+   PWA, iOS audio unlock, boot
+   ------------------------------------------------------------ */
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .catch(err => console.log('SW registration failed:', err));
+    });
   }
+
+  function unlockIOSAudio() {
+    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//OEZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAIAAADnAAjIyMjIyMjIyMjIyMjIyMjTU1NTU1NTU1NTU1NTU1Nd3d3d3d3d3d3d3d3d3d3oaGhoaGhoaGhoaGhoaGhoaurq6urq6urq6urq6urq6u1tbW1tbW1tbW1tbW1tbW13t7e3t7e3t7e3t7e3t7e3v////////////////////////////////8AAAAaTGF2YzU4LjU0AAAAAAAAAAAAAAAA//OEZAAHCAAGkAAAAAAAAA0gAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
+    silentAudio.play().catch(() => {});
+  }
+  document.addEventListener('touchstart', unlockIOSAudio);
+  document.addEventListener('click', unlockIOSAudio);
+
+  window.addEventListener('load', initSupabase);
 </script>
 
-
-<!-- Lesson Summary Modal -->
-<div class="modal-overlay" id="lessonModal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">📚 Today's Lesson</div>
-      <button class="modal-close" onclick="closeLessonModal()">✕</button>
-    </div>
-    <div id="lessonContent">
-      <div class="loading-lesson">⏳ Generating your lesson summary...</div>
-    </div>
-  </div>
-</div>
-<!-- Auth Screen -->
-<div id="authScreen">
-  <div class="auth-box">
-    <div class="auth-logo">talk<span>ova</span></div>
-    <p class="auth-sub">Your AI English tutor, available 24/7</p>
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign in</button>
-      <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Sign up</button>
-    </div>
-    <div id="loginForm">
-      <input class="auth-input" type="email" id="loginEmail" placeholder="your@email.com"/>
-      <input class="auth-input" type="password" id="loginPassword" placeholder="Password"/>
-      <button class="auth-btn" onclick="handleLogin()">Sign in →</button>
-    </div>
-    <div id="registerForm" style="display:none">
-      <input class="auth-input" type="text" id="regName" placeholder="Your name"/>
-      <input class="auth-input" type="email" id="regEmail" placeholder="your@email.com"/>
-      <input class="auth-input" type="password" id="regPassword" placeholder="Create a password (min 6 chars)"/>
-      <button class="auth-btn" onclick="handleRegister()">Create account →</button>
-    </div>
-    <p class="auth-err" id="authErr"></p>
-  </div>
-</div>
 </body>
-</ht
+</html>
