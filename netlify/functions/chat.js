@@ -1,26 +1,113 @@
-exports.handler = async function(event, context) {
+// netlify/functions/chat.js
+// Two jobs: talk to the tutor (Anthropic), and speak the reply out loud (ElevenLabs).
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+const FREE_DAILY_MESSAGES = 60;   // safety ceiling; the 5-conversation limit lives in the UI
+const MAX_TTS_CHARS = 2000;
+const MAX_HISTORY = 30;
+
+const json = (statusCode, payload) => ({
+  statusCode,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+});
+
+async function getUser(event) {
+  const header = event.headers.authorization || event.headers.Authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token || !SUPABASE_URL) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return null;
+    const user = await res.json();
+    return user && user.id ? user : null;
+  } catch (e) {
+    console.error('Token check failed:', e);
+    return null;
+  }
+}
+
+async function getPlan(userId) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=plan`,
+      { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+    );
+    const rows = await res.json();
+    return (rows[0]?.plan || 'free').toLowerCase();
+  } catch (e) {
+    return 'free';
+  }
+}
+
+// Atomic counter, one row per user per day.
+async function bumpUsage(userId) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/bump_usage`, {
+      method: 'POST',
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ p_user: userId })
+    });
+    return (await res.json()) || 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  const { messages, tutorName, tutorDesc, tts, userId } = JSON.parse(event.body);
+  const user = await getUser(event);
+  if (!user) return json(401, { error: 'Sign in to keep practicing.' });
 
-  // --- ElevenLabs TTS request ---
+  let body;
+  try {
+    body = JSON.parse(event.body);
+  } catch (e) {
+    return json(400, { error: 'Malformed request body.' });
+  }
+
+  const { messages, tutorName, tutorDesc, tts, mode } = body;
+  const plan = await getPlan(user.id);
+
+  /* ---------- ElevenLabs: speak the reply ---------- */
   if (tts) {
+    // Voice is a paid feature, and night audio is Premium only. Without this
+    // check anyone could burn through the ElevenLabs credits.
+    if (plan === 'free') {
+      return json(402, { error: 'Voice conversations are included in Pro.', upgrade: true });
+    }
+    if (mode === 'night' && plan !== 'premium') {
+      return json(402, { error: 'Night audio is included in Premium.', upgrade: true });
+    }
+    if (typeof tts !== 'string' || tts.length > MAX_TTS_CHARS) {
+      return json(400, { error: 'That text is too long to read aloud.' });
+    }
+
     const voiceIds = {
-      Leo:  process.env.ELEVENLABS_VOICE_LEO,
+      Leo: process.env.ELEVENLABS_VOICE_LEO,
       Maya: process.env.ELEVENLABS_VOICE_MAYA,
       Nova: process.env.ELEVENLABS_VOICE_NOVA
     };
     const voiceId = voiceIds[tutorName] || voiceIds.Maya;
-    const apiKey = process.env.ELEVENLABS_API_KEY;
 
     try {
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
         method: 'POST',
         headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
+          'xi-api-key': process.env.ELEVENLABS_API_KEY,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           text: tts,
@@ -35,28 +122,31 @@ exports.handler = async function(event, context) {
       });
 
       if (!response.ok) {
-        const errBody = await response.text();
-        console.error('ElevenLabs error:', response.status, errBody);
-        throw new Error(`ElevenLabs error: ${response.status} - ${errBody}`);
+        console.error('ElevenLabs error:', response.status, await response.text());
+        return json(502, { error: 'The voice service did not respond. Try again.' });
       }
 
       const audioBuffer = await response.arrayBuffer();
-      const base64Audio = Buffer.from(audioBuffer).toString('base64');
-
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audio: base64Audio })
-      };
+      return json(200, { audio: Buffer.from(audioBuffer).toString('base64') });
     } catch (error) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: error.message })
-      };
+      console.error('TTS error:', error);
+      return json(500, { error: 'The voice service did not respond. Try again.' });
     }
   }
 
-  // --- Anthropic chat request ---
+  /* ---------- Anthropic: the tutor replies ---------- */
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return json(400, { error: 'No message to answer.' });
+  }
+
+  const used = await bumpUsage(user.id);
+  if (plan === 'free' && used > FREE_DAILY_MESSAGES) {
+    return json(402, {
+      error: 'You have reached the free daily limit. Come back tomorrow or upgrade.',
+      upgrade: true
+    });
+  }
+
   const systemPrompt = `You are ${tutorName}, a friendly bilingual English tutor on Talkova, built for Latino learners. Your personality: ${tutorDesc}
 
 Rules:
@@ -75,85 +165,75 @@ IMPORTANT: At the end of every response, add a JSON block (hidden from display) 
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: systemPrompt,
-        messages: messages,
-      }),
+        messages: messages.slice(-MAX_HISTORY)
+      })
     });
 
     const data = await response.json();
+    if (!response.ok || !data.content) {
+      console.error('Anthropic error:', data);
+      return json(502, { error: 'The tutor is not responding. Try again in a moment.' });
+    }
+
     const fullText = data.content[0].text;
 
-    // Extract progress data from hidden JSON block
     const progressMatch = fullText.match(/<progress>(.*?)<\/progress>/s);
     let progressData = null;
     if (progressMatch) {
-      try {
-        progressData = JSON.parse(progressMatch[1]);
-      } catch(e) {}
+      try { progressData = JSON.parse(progressMatch[1]); } catch (e) {}
     }
-
-    // Clean text - remove the hidden progress block
     const cleanText = fullText.replace(/<progress>.*?<\/progress>/s, '').trim();
 
-    // Save progress to Supabase if userId provided
-    if (userId && progressData) {
+    // Progress tracking is a paid feature, and the user id comes from the
+    // token — never from the request body.
+    if (progressData && plan !== 'free') {
       try {
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-
-        // Update user level
         if (progressData.level) {
-          await fetch(`${supabaseUrl}/rest/v1/users?id=eq.${userId}`, {
+          await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
             method: 'PATCH',
             headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json',
+              apikey: SERVICE_KEY,
+              Authorization: `Bearer ${SERVICE_KEY}`,
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({ level: progressData.level })
           });
         }
 
-        // Save progress entry
-        if (progressData.topics && progressData.topics.length > 0) {
-          await fetch(`${supabaseUrl}/rest/v1/progress`, {
+        // One row per topic that accumulates, instead of a new row per message.
+        if (progressData.topics?.length) {
+          await fetch(`${SUPABASE_URL}/rest/v1/rpc/bump_progress`, {
             method: 'POST',
             headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json',
+              apikey: SERVICE_KEY,
+              Authorization: `Bearer ${SERVICE_KEY}`,
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              user_id: userId,
-              topic: progressData.topics[0],
-              errors_count: progressData.errors ? progressData.errors.length : 0,
-              practice_count: 1,
-              last_practiced: new Date().toISOString()
+              p_user: user.id,
+              p_topic: String(progressData.topics[0]).toLowerCase().slice(0, 60),
+              p_errors: progressData.errors?.length || 0
             })
           });
         }
-      } catch(e) {
-        console.error('Supabase save error:', e);
+      } catch (e) {
+        console.error('Progress save error:', e);
       }
     }
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        content: cleanText,
-        progress: progressData
-      }),
-    };
+    return json(200, {
+      content: cleanText,
+      progress: plan === 'free' ? null : progressData,
+      plan
+    });
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
-    };
+    console.error('chat error:', error);
+    return json(500, { error: 'The tutor is not responding. Try again in a moment.' });
   }
-}
+};
