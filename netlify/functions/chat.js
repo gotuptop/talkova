@@ -156,4 +156,4 @@ IMPORTANT: At the end of every response, add a JSON block (hidden from display) 
       body: JSON.stringify({ error: error.message }),
     };
   }
-};
+}
