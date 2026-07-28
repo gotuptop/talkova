@@ -211,7 +211,9 @@
     }
   }
 
+  let currentLesson = null;
   function renderLesson(lesson) {
+    currentLesson = lesson;
     let html = `
       <p class="lesson-date">📅 ${lesson.date} · Tutor: ${lesson.tutorName}</p>
       <h3 style="font-size:16px;margin-bottom:1rem">${lesson.title || 'English Practice Session'}</h3>`;
@@ -249,6 +251,7 @@
           <div class="night-audio-text">${lesson.night_audio_script}</div>
           <div class="night-audio-controls">
             <button class="night-btn play" onclick="playNightAudio('${encodeURIComponent(lesson.night_audio_script)}')">▶ Play now</button>
+            <button class="night-btn download" onclick="saveNightAudio('${encodeURIComponent(lesson.night_audio_script)}')">💾 Save audio</button>
           </div>
         </div>
       </div>`;
@@ -262,7 +265,9 @@
       </div>`;
     }
 
-    html += `<button class="end-session-btn" onclick="closeLessonModal()">Close & Continue Practicing</button>`;
+    html += `
+      <button class="night-btn play" style="width:100%;margin-bottom:8px;padding:12px;font-size:14px" onclick="generatePDF(currentLesson)">📄 Download PDF Lesson</button>
+      <button class="end-session-btn" onclick="closeLessonModal()">Close & Continue Practicing</button>`;
     document.getElementById('lessonContent').innerHTML = html;
   }
 
@@ -291,6 +296,123 @@
       }
     } catch(e) {
       showToast('Could not generate audio. Try again.');
+    }
+  }
+
+  function generatePDF(lesson) {
+    const printWindow = window.open('', '_blank');
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>Talkova Lesson — ${lesson.date}</title>
+<style>
+  body{font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:40px auto;padding:20px;color:#1a1a2e;line-height:1.6}
+  .header{text-align:center;border-bottom:3px solid #534AB7;padding-bottom:20px;margin-bottom:30px}
+  .logo{font-size:28px;font-weight:900;color:#534AB7;margin-bottom:4px}
+  .logo span{color:#FF6B35}
+  .lesson-title{font-size:20px;font-weight:700;margin-bottom:4px}
+  .lesson-meta{font-size:13px;color:#666;margin-bottom:0}
+  .section{margin-bottom:24px}
+  .section-title{font-size:12px;font-weight:700;color:#534AB7;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:12px}
+  .phrase{background:#f5f5ff;border-left:3px solid #534AB7;padding:8px 12px;margin-bottom:8px;border-radius:0 6px 6px 0;font-size:14px}
+  .correction{background:#fff8f8;border:1px solid #ffdddd;border-radius:8px;padding:12px;margin-bottom:10px}
+  .wrong{color:#cc0000;font-size:13px;text-decoration:line-through;margin-bottom:4px}
+  .right{color:#006600;font-size:13px;font-weight:600;margin-bottom:4px}
+  .tip{color:#666;font-size:12px}
+  .night-audio{background:#f0eeff;border:1px solid #c5bff5;border-radius:8px;padding:16px;margin-bottom:16px}
+  .night-title{font-size:14px;font-weight:700;color:#534AB7;margin-bottom:8px}
+  .night-text{font-size:13px;color:#333;line-height:1.8}
+  .homework{background:#f0fff5;border:1px solid #b3f0cc;border-radius:8px;padding:12px;font-size:14px}
+  .footer{text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #eee;font-size:12px;color:#999}
+  .instructions{background:#fffdf0;border:1px solid #ffe580;border-radius:8px;padding:14px;margin-bottom:20px;font-size:13px}
+  .instructions h4{margin:0 0 8px;color:#8B6914;font-size:13px}
+  .instructions ol{margin:0;padding-left:18px;color:#555}
+  .instructions li{margin-bottom:4px}
+  @media print{body{margin:20px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">talk<span>ova</span></div>
+  <div class="lesson-title">${lesson.title || 'English Practice Session'}</div>
+  <div class="lesson-meta">📅 ${lesson.date} · Tutor: ${lesson.tutorName} · Student: ${lesson.studentName}</div>
+</div>
+
+<div class="instructions">
+  <h4>🌙 How to use this lesson for subconscious learning:</h4>
+  <ol>
+    <li><strong>Before sleep:</strong> Read this PDF out loud while listening to the audio at 25% volume</li>
+    <li><strong>During sleep:</strong> Play the audio on repeat at 25% volume all night</li>
+    <li><strong>Morning:</strong> Read the PDF again and repeat each phrase 3 times out loud</li>
+  </ol>
+</div>
+
+${lesson.key_phrases && lesson.key_phrases.length > 0 ? `
+<div class="section">
+  <div class="section-title">⭐ Key Phrases Practiced</div>
+  ${lesson.key_phrases.map(p => `<div class="phrase">💬 ${p}</div>`).join('')}
+</div>` : ''}
+
+${lesson.corrections && lesson.corrections.length > 0 ? `
+<div class="section">
+  <div class="section-title">✏️ Corrections to Remember</div>
+  ${lesson.corrections.map(c => `
+  <div class="correction">
+    <div class="wrong">❌ ${c.wrong}</div>
+    <div class="right">✅ ${c.correct}</div>
+    <div class="tip">💡 ${c.tip}</div>
+  </div>`).join('')}
+</div>` : ''}
+
+${lesson.night_audio_script ? `
+<div class="section">
+  <div class="section-title">🎧 Night Audio Script — Read & Listen</div>
+  <div class="night-audio">
+    <div class="night-title">🌙 Listen to this at 25% volume before and during sleep</div>
+    <div class="night-text">${lesson.night_audio_script}</div>
+  </div>
+</div>` : ''}
+
+${lesson.homework ? `
+<div class="section">
+  <div class="section-title">📝 Homework</div>
+  <div class="homework">🏠 ${lesson.homework}</div>
+</div>` : ''}
+
+<div class="footer">
+  <strong>talkova.app</strong> · AI English Tutor · Available 24/7<br/>
+  Practice daily for best results. Consistent study leads to fluency! 🚀
+</div>
+</body>
+</html>`;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
+  }
+
+  async function saveNightAudio(encodedScript) {
+    const script = decodeURIComponent(encodedScript);
+    showToast('💾 Generating audio file...');
+    try {
+      const res = await fetch('/.netlify/functions/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tts: script, tutorName: tutor.name })
+      });
+      const data = await res.json();
+      if (data.audio) {
+        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(audioBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `talkova-night-audio-${new Date().toLocaleDateString('en-US').replace(/\//g,'-')}.mp3`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('✅ Audio saved! Play at 25% volume before sleep.');
+      }
+    } catch(e) {
+      showToast('Could not save audio. Try again.');
     }
   }
 </script>
@@ -1160,7 +1282,9 @@
     }
   }
 
+  let currentLesson = null;
   function renderLesson(lesson) {
+    currentLesson = lesson;
     let html = `
       <p class="lesson-date">📅 ${lesson.date} · Tutor: ${lesson.tutorName}</p>
       <h3 style="font-size:16px;margin-bottom:1rem">${lesson.title || 'English Practice Session'}</h3>`;
@@ -1198,6 +1322,7 @@
           <div class="night-audio-text">${lesson.night_audio_script}</div>
           <div class="night-audio-controls">
             <button class="night-btn play" onclick="playNightAudio('${encodeURIComponent(lesson.night_audio_script)}')">▶ Play now</button>
+            <button class="night-btn download" onclick="saveNightAudio('${encodeURIComponent(lesson.night_audio_script)}')">💾 Save audio</button>
           </div>
         </div>
       </div>`;
@@ -1211,7 +1336,9 @@
       </div>`;
     }
 
-    html += `<button class="end-session-btn" onclick="closeLessonModal()">Close & Continue Practicing</button>`;
+    html += `
+      <button class="night-btn play" style="width:100%;margin-bottom:8px;padding:12px;font-size:14px" onclick="generatePDF(currentLesson)">📄 Download PDF Lesson</button>
+      <button class="end-session-btn" onclick="closeLessonModal()">Close & Continue Practicing</button>`;
     document.getElementById('lessonContent').innerHTML = html;
   }
 
@@ -1240,6 +1367,123 @@
       }
     } catch(e) {
       showToast('Could not generate audio. Try again.');
+    }
+  }
+
+  function generatePDF(lesson) {
+    const printWindow = window.open('', '_blank');
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>Talkova Lesson — ${lesson.date}</title>
+<style>
+  body{font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:40px auto;padding:20px;color:#1a1a2e;line-height:1.6}
+  .header{text-align:center;border-bottom:3px solid #534AB7;padding-bottom:20px;margin-bottom:30px}
+  .logo{font-size:28px;font-weight:900;color:#534AB7;margin-bottom:4px}
+  .logo span{color:#FF6B35}
+  .lesson-title{font-size:20px;font-weight:700;margin-bottom:4px}
+  .lesson-meta{font-size:13px;color:#666;margin-bottom:0}
+  .section{margin-bottom:24px}
+  .section-title{font-size:12px;font-weight:700;color:#534AB7;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:12px}
+  .phrase{background:#f5f5ff;border-left:3px solid #534AB7;padding:8px 12px;margin-bottom:8px;border-radius:0 6px 6px 0;font-size:14px}
+  .correction{background:#fff8f8;border:1px solid #ffdddd;border-radius:8px;padding:12px;margin-bottom:10px}
+  .wrong{color:#cc0000;font-size:13px;text-decoration:line-through;margin-bottom:4px}
+  .right{color:#006600;font-size:13px;font-weight:600;margin-bottom:4px}
+  .tip{color:#666;font-size:12px}
+  .night-audio{background:#f0eeff;border:1px solid #c5bff5;border-radius:8px;padding:16px;margin-bottom:16px}
+  .night-title{font-size:14px;font-weight:700;color:#534AB7;margin-bottom:8px}
+  .night-text{font-size:13px;color:#333;line-height:1.8}
+  .homework{background:#f0fff5;border:1px solid #b3f0cc;border-radius:8px;padding:12px;font-size:14px}
+  .footer{text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #eee;font-size:12px;color:#999}
+  .instructions{background:#fffdf0;border:1px solid #ffe580;border-radius:8px;padding:14px;margin-bottom:20px;font-size:13px}
+  .instructions h4{margin:0 0 8px;color:#8B6914;font-size:13px}
+  .instructions ol{margin:0;padding-left:18px;color:#555}
+  .instructions li{margin-bottom:4px}
+  @media print{body{margin:20px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">talk<span>ova</span></div>
+  <div class="lesson-title">${lesson.title || 'English Practice Session'}</div>
+  <div class="lesson-meta">📅 ${lesson.date} · Tutor: ${lesson.tutorName} · Student: ${lesson.studentName}</div>
+</div>
+
+<div class="instructions">
+  <h4>🌙 How to use this lesson for subconscious learning:</h4>
+  <ol>
+    <li><strong>Before sleep:</strong> Read this PDF out loud while listening to the audio at 25% volume</li>
+    <li><strong>During sleep:</strong> Play the audio on repeat at 25% volume all night</li>
+    <li><strong>Morning:</strong> Read the PDF again and repeat each phrase 3 times out loud</li>
+  </ol>
+</div>
+
+${lesson.key_phrases && lesson.key_phrases.length > 0 ? `
+<div class="section">
+  <div class="section-title">⭐ Key Phrases Practiced</div>
+  ${lesson.key_phrases.map(p => `<div class="phrase">💬 ${p}</div>`).join('')}
+</div>` : ''}
+
+${lesson.corrections && lesson.corrections.length > 0 ? `
+<div class="section">
+  <div class="section-title">✏️ Corrections to Remember</div>
+  ${lesson.corrections.map(c => `
+  <div class="correction">
+    <div class="wrong">❌ ${c.wrong}</div>
+    <div class="right">✅ ${c.correct}</div>
+    <div class="tip">💡 ${c.tip}</div>
+  </div>`).join('')}
+</div>` : ''}
+
+${lesson.night_audio_script ? `
+<div class="section">
+  <div class="section-title">🎧 Night Audio Script — Read & Listen</div>
+  <div class="night-audio">
+    <div class="night-title">🌙 Listen to this at 25% volume before and during sleep</div>
+    <div class="night-text">${lesson.night_audio_script}</div>
+  </div>
+</div>` : ''}
+
+${lesson.homework ? `
+<div class="section">
+  <div class="section-title">📝 Homework</div>
+  <div class="homework">🏠 ${lesson.homework}</div>
+</div>` : ''}
+
+<div class="footer">
+  <strong>talkova.app</strong> · AI English Tutor · Available 24/7<br/>
+  Practice daily for best results. Consistent study leads to fluency! 🚀
+</div>
+</body>
+</html>`;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
+  }
+
+  async function saveNightAudio(encodedScript) {
+    const script = decodeURIComponent(encodedScript);
+    showToast('💾 Generating audio file...');
+    try {
+      const res = await fetch('/.netlify/functions/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tts: script, tutorName: tutor.name })
+      });
+      const data = await res.json();
+      if (data.audio) {
+        const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(audioBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `talkova-night-audio-${new Date().toLocaleDateString('en-US').replace(/\//g,'-')}.mp3`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('✅ Audio saved! Play at 25% volume before sleep.');
+      }
+    } catch(e) {
+      showToast('Could not save audio. Try again.');
     }
   }
 </script>
@@ -1281,4 +1525,4 @@
   </div>
 </div>
 </body>
-</html>
+</ht
