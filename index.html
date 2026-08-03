@@ -4,7 +4,6 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="google-site-verification" content="wGnhsRNv9C2vP1gJS4dWRJmuBpt4LIpmN2ef01ZCMks" />
 <title>Talkova — AI English Tutor</title>
 <link rel="manifest" href="/manifest.json"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -455,6 +454,7 @@
   let micLang = 'en-US';
   let currentAudio = null;
   let nightAudio = null;
+  let nightAudioCache = null;   // { script, blob } — avoids paying twice for the same audio
   let currentLesson = null;
 
   let userPlan = 'free';
@@ -1140,6 +1140,11 @@
   }
 
   async function fetchNightAudioBlob(script) {
+    // Play and Save used to hit ElevenLabs every time — the same lesson could
+    // be billed a dozen times over. Generate once, reuse from here on.
+    if (nightAudioCache && nightAudioCache.script === script) {
+      return nightAudioCache.blob;
+    }
     const res = await fetch('/.netlify/functions/chat', {
       method:'POST',
       headers: await authHeaders(),
@@ -1148,7 +1153,9 @@
     const data = await res.json();
     if (!res.ok) { handleApiError(res.status, data); throw new Error(data.error || 'No audio'); }
     if (!data.audio) throw new Error('No audio');
-    return new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type:'audio/mpeg' });
+    const blob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type:'audio/mpeg' });
+    nightAudioCache = { script, blob };
+    return blob;
   }
 
   async function playNightAudio() {
@@ -1304,4 +1311,4 @@ ${lesson.homework ? `
 </script>
 
 </body>
-</html>
+</ht
