@@ -1,7 +1,7 @@
 // netlify/functions/chat.js
 // Two jobs: talk to the tutor (Anthropic), and speak the reply out loud (ElevenLabs).
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
 const ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
@@ -23,7 +23,10 @@ async function getUser(event) {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` }
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error('Auth check rejected:', res.status, await res.text());
+      return null;
+    }
     const user = await res.json();
     return user && user.id ? user : null;
   } catch (e) {
@@ -36,7 +39,7 @@ async function getPlan(userId) {
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=plan`,
-      { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      { headers: { apikey: SERVICE_KEY } }
     );
     const rows = await res.json();
     return (rows[0]?.plan || 'free').toLowerCase();
@@ -52,7 +55,6 @@ async function bumpUsage(userId) {
       method: 'POST',
       headers: {
         apikey: SERVICE_KEY,
-        Authorization: `Bearer ${SERVICE_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ p_user: userId })
@@ -111,7 +113,9 @@ exports.handler = async function (event) {
         },
         body: JSON.stringify({
           text: tts,
-          model_id: 'eleven_multilingual_v2',
+          // Flash v2.5 costs 0.5 credits per character instead of 1, and it is
+          // still multilingual. ElevenLabs recommends it over Turbo.
+          model_id: 'eleven_flash_v2_5',
           voice_settings: {
             stability: 0.6,
             similarity_boost: 0.85,
@@ -199,7 +203,6 @@ IMPORTANT: At the end of every response, add a JSON block (hidden from display) 
             method: 'PATCH',
             headers: {
               apikey: SERVICE_KEY,
-              Authorization: `Bearer ${SERVICE_KEY}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({ level: progressData.level })
@@ -212,7 +215,6 @@ IMPORTANT: At the end of every response, add a JSON block (hidden from display) 
             method: 'POST',
             headers: {
               apikey: SERVICE_KEY,
-              Authorization: `Bearer ${SERVICE_KEY}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
