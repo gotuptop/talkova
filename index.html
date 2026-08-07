@@ -139,6 +139,11 @@
   .toast.show{opacity:1}
   button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--purple-light);outline-offset:2px}
 
+  .learn-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:1.6rem;flex-wrap:wrap}
+  .learn-label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em}
+  .learn-select{background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:999px;padding:8px 16px;font-size:14px;font-family:'Inter',sans-serif;cursor:pointer;outline:none}
+  .learn-select:focus{border-color:var(--purple)}
+
   .nav-right{display:flex;align-items:center;gap:14px}
   .lang-switch{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:2px;gap:2px}
   .lang-btn{font-size:11px;font-weight:700;letter-spacing:.04em;padding:5px 11px;border-radius:999px;cursor:pointer;border:none;background:none;color:var(--text-muted);transition:all .2s}
@@ -244,8 +249,8 @@
   <div class="logo">talk<span>ova</span></div>
   <div class="nav-right">
     <div class="lang-switch" role="group" aria-label="Language">
-      <button class="lang-btn active" id="langEs" onclick="setLang('es')">ES</button>
-      <button class="lang-btn" id="langEn2" onclick="setLang('en')">EN</button>
+      <button class="lang-btn active" id="uiLangEs" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" id="uiLangEn" onclick="setLang('en')">EN</button>
     </div>
   <div style="display:flex;gap:12px" id="navActions">
     <button class="btn-g" data-i18n="nav.try" onclick="showApp()">Try free</button>
@@ -271,6 +276,10 @@
   </section>
 
   <section class="ts">
+    <div class="learn-row">
+      <label class="learn-label" for="learnPicker" data-i18n="learn.label">I want to learn</label>
+      <select class="learn-select" id="learnPicker" onchange="setLearnLang(this.value)"></select>
+    </div>
     <p class="slabel" data-i18n="tutors.label">Choose your tutor</p>
     <div class="trow">
       <div class="tc sel" onclick="selectTutor(this,'Maya')">
@@ -386,8 +395,8 @@
         <span class="vol-icon">🔊</span>
       </div>
       <div class="lang-mode">
-        <button class="lang-opt active" id="langEn" onclick="setMicLang('en-US')">🎤 English</button>
-        <button class="lang-opt" id="langEs" onclick="setMicLang('es-US')">🆘 Ayuda</button>
+        <button class="lang-opt active" id="micTarget" onclick="setMicLang('target')">🎤 <span id="micTargetName">English</span></button>
+        <button class="lang-opt" id="micNative" onclick="setMicLang('native')">🆘 <span data-i18n="voice.help">Ayuda</span></button>
       </div>
       <span class="voice-label" id="voiceLabel">Speak English — tutor evaluates you</span>
     </div>
@@ -464,7 +473,7 @@
       'hero.email':'tu@correo.com',
       'hero.cta':'Quiero acceso',
       'hero.hint':'Empieza gratis — sin tarjeta de crédito',
-      'tutors.label':'Elige tu tutor',
+      'learn.label':'Quiero aprender', 'learn.main':'Principales', 'learn.more':'Más idiomas', 'tutors.label':'Elige tu tutor',
       'tutors.maya':'Cálida y bilingüe. Creció hablando español.',
       'tutors.leo':'Relajado y con energía. Clases que se sienten como una plática.',
       'tutors.nova':'Paciente y clara. Ideal si empiezas desde cero.',
@@ -493,7 +502,14 @@
       'au.sub':'Tu tutor de inglés con IA, disponible 24/7',
       'au.signin':'Iniciar sesión','au.signup':'Crear cuenta',
       'au.email':'tu@correo.com','au.pass':'Contraseña','au.signinBtn':'Entrar →',
-      'au.name':'Tu nombre','au.newpass':'Crea una contraseña (mínimo 6)','au.signupBtn':'Crear cuenta →'
+      'au.name':'Tu nombre','au.newpass':'Crea una contraseña (mínimo 6)','au.signupBtn':'Crear cuenta →',
+      'voice.proOnly':'La práctica por voz viene en Pro',
+      'voice.target':'Habla {lang} — el tutor te evalúa',
+      'voice.native':'Habla {lang} — el tutor te ayuda',
+      'voice.phTarget':'Escribe o toca 🎤 para hablar en {lang}...',
+      'voice.phNative':'Escribe o toca 🎤 para pedir ayuda...',
+      'voice.help':'Ayuda',
+      'chat.greet':'¡Hola! Soy {name} 👋 Soy tu tutor en Talkova. Puedes escribir o tocar el 🎤 para hablar — lo que te resulte más cómodo. ¿Qué te gustaría practicar hoy?'
     },
     en: {
       'nav.try':'Try free', 'nav.start':'Start learning', 'nav.signout':'Sign out',
@@ -503,7 +519,7 @@
       'hero.email':'your@email.com',
       'hero.cta':'Get early access',
       'hero.hint':'Free to start — no credit card needed',
-      'tutors.label':'Choose your tutor',
+      'learn.label':'I want to learn', 'learn.main':'Main', 'learn.more':'More languages', 'tutors.label':'Choose your tutor',
       'tutors.maya':'Warm &amp; bilingual. Grew up speaking Spanish.',
       'tutors.leo':'Cool &amp; energetic. Lessons that feel like a hang.',
       'tutors.nova':'Patient &amp; clear. Perfect for total beginners.',
@@ -532,7 +548,14 @@
       'au.sub':'Your AI English tutor, available 24/7',
       'au.signin':'Sign in','au.signup':'Sign up',
       'au.email':'your@email.com','au.pass':'Password','au.signinBtn':'Sign in →',
-      'au.name':'Your name','au.newpass':'Create a password (min 6 chars)','au.signupBtn':'Create account →'
+      'au.name':'Your name','au.newpass':'Create a password (min 6 chars)','au.signupBtn':'Create account →',
+      'voice.proOnly':'Voice practice is included in Pro',
+      'voice.target':'Speak {lang} — the tutor grades you',
+      'voice.native':'Speak {lang} — the tutor helps you',
+      'voice.phTarget':'Type or tap 🎤 to speak in {lang}...',
+      'voice.phNative':'Type or tap 🎤 to ask for help...',
+      'voice.help':'Help',
+      'chat.greet':"Hi! I'm {name} 👋 I'm your tutor at Talkova. You can type or tap the 🎤 to speak — whatever feels comfortable. What would you like to practice today?"
     }
   };
 
@@ -544,8 +567,8 @@
     lang = (next === 'en') ? 'en' : 'es';
     document.documentElement.lang = lang;
     try { localStorage.setItem('talkova_lang', lang); } catch (e) { /* private mode */ }
-    document.getElementById('langEs').classList.toggle('active', lang === 'es');
-    document.getElementById('langEn2').classList.toggle('active', lang === 'en');
+    document.getElementById('uiLangEs').classList.toggle('active', lang === 'es');
+    document.getElementById('uiLangEn').classList.toggle('active', lang === 'en');
     applyLang();
   }
 
@@ -573,6 +596,9 @@
     if (df) df.innerHTML = t('demo.fix');
     const lc = document.querySelector('.legal-copy');
     if (lc) lc.textContent = t('lg.copy');
+    renderLangPicker();
+    const mt = document.getElementById('micTargetName');
+    if (mt) mt.textContent = LEARN_LANGS[learnLang]?.[lang] || 'English';
   }
 
   function initLang() {
@@ -586,12 +612,100 @@
     setLang(saved);
   }
 
+
+/* ------------------------------------------------------------
+   Par de idiomas — qué habla el alumno y qué está aprendiendo.
+   Vive en la tabla users, así que añadir un idioma es una línea
+   aquí y una en el catálogo de las funciones de Netlify.
+   ------------------------------------------------------------ */
+
+  const LEARN_LANGS = {
+    en: { es:'Inglés', en:'English', flag:'🇺🇸', mic:'en-US' },
+    es: { es:'Español', en:'Spanish', flag:'🇪🇸', mic:'es-US' },
+    pt: { es:'Portugués', en:'Portuguese', flag:'🇧🇷', mic:'pt-BR' },
+    fr: { es:'Francés', en:'French', flag:'🇫🇷', mic:'fr-FR' },
+    it: { es:'Italiano', en:'Italian', flag:'🇮🇹', mic:'it-IT' },
+    de: { es:'Alemán', en:'German', flag:'🇩🇪', mic:'de-DE' },
+    nl: { es:'Neerlandés', en:'Dutch', flag:'🇳🇱', mic:'nl-NL' },
+    pl: { es:'Polaco', en:'Polish', flag:'🇵🇱', mic:'pl-PL' },
+    sv: { es:'Sueco', en:'Swedish', flag:'🇸🇪', mic:'sv-SE' },
+    da: { es:'Danés', en:'Danish', flag:'🇩🇰', mic:'da-DK' },
+    no: { es:'Noruego', en:'Norwegian', flag:'🇳🇴', mic:'nb-NO' },
+    fi: { es:'Finés', en:'Finnish', flag:'🇫🇮', mic:'fi-FI' },
+    cs: { es:'Checo', en:'Czech', flag:'🇨🇿', mic:'cs-CZ' },
+    sk: { es:'Eslovaco', en:'Slovak', flag:'🇸🇰', mic:'sk-SK' },
+    hu: { es:'Húngaro', en:'Hungarian', flag:'🇭🇺', mic:'hu-HU' },
+    ro: { es:'Rumano', en:'Romanian', flag:'🇷🇴', mic:'ro-RO' },
+    bg: { es:'Búlgaro', en:'Bulgarian', flag:'🇧🇬', mic:'bg-BG' },
+    hr: { es:'Croata', en:'Croatian', flag:'🇭🇷', mic:'hr-HR' },
+    el: { es:'Griego', en:'Greek', flag:'🇬🇷', mic:'el-GR' },
+    uk: { es:'Ucraniano', en:'Ukrainian', flag:'🇺🇦', mic:'uk-UA' },
+    ru: { es:'Ruso', en:'Russian', flag:'🇷🇺', mic:'ru-RU' },
+    tr: { es:'Turco', en:'Turkish', flag:'🇹🇷', mic:'tr-TR' },
+    ar: { es:'Árabe', en:'Arabic', flag:'🇸🇦', mic:'ar-SA' },
+    hi: { es:'Hindi', en:'Hindi', flag:'🇮🇳', mic:'hi-IN' },
+    ta: { es:'Tamil', en:'Tamil', flag:'🇮🇳', mic:'ta-IN' },
+    ja: { es:'Japonés', en:'Japanese', flag:'🇯🇵', mic:'ja-JP' },
+    ko: { es:'Coreano', en:'Korean', flag:'🇰🇷', mic:'ko-KR' },
+    zh: { es:'Chino', en:'Chinese', flag:'🇨🇳', mic:'zh-CN' },
+    id: { es:'Indonesio', en:'Indonesian', flag:'🇮🇩', mic:'id-ID' },
+    ms: { es:'Malayo', en:'Malay', flag:'🇲🇾', mic:'ms-MY' },
+    fil: { es:'Filipino', en:'Filipino', flag:'🇵🇭', mic:'fil-PH' },
+    vi: { es:'Vietnamita', en:'Vietnamese', flag:'🇻🇳', mic:'vi-VN' }
+  };
+
+  let learnLang = 'en';   // what the user is learning
+  let nativeLang = 'es';  // what the user already speaks
+
+  function learnLabel(code) {
+    const l = LEARN_LANGS[code];
+    return l ? `${l.flag} ${l[lang] || l.en}` : code;
+  }
+
+  // English and Spanish sit at the top — they are the two the app is built
+  // around. The rest are grouped below so the list stays scannable.
+  function renderLangPicker() {
+    const sel = document.getElementById('learnPicker');
+    if (!sel) return;
+    const primary = ['en','es'];
+    const rest = Object.keys(LEARN_LANGS).filter(c => !primary.includes(c));
+    const opt = c => `<option value="${c}"${c === learnLang ? ' selected' : ''}>${learnLabel(c)}</option>`;
+    sel.innerHTML =
+      `<optgroup label="${t('learn.main')}">${primary.map(opt).join('')}</optgroup>` +
+      `<optgroup label="${t('learn.more')}">${rest.map(opt).join('')}</optgroup>`;
+  }
+
+  // The pair is saved on the user's row, so every request picks it up.
+  async function setLearnLang(code) {
+    if (!LEARN_LANGS[code]) return;
+    learnLang = code;
+    if (nativeLang === learnLang) nativeLang = (learnLang === 'es') ? 'en' : 'es';
+    micLang = LEARN_LANGS[code].mic;
+    chatHistory = [];
+    currentConversationId = null;
+    const area = document.getElementById('chatArea');
+    if (area) area.innerHTML = '';
+    renderLangPicker();
+    const mt = document.getElementById('micTargetName');
+    if (mt) mt.textContent = LEARN_LANGS[learnLang]?.[lang] || 'English';
+    setMicLang('target');
+    if (currentUser && supabaseClient) {
+      try {
+        await supabaseClient.from('users')
+          .update({ learning_language: learnLang, native_language: nativeLang })
+          .eq('id', currentUser.id);
+      } catch (e) { console.error('Language save error:', e); }
+    }
+  }
+
   const FREE_DAILY_LIMIT = 5;
 
   const tutorData = {
-    Maya: { name:'Maya', initial:'M', desc:'Warm & bilingual. Grew up speaking Spanish, now teaches English.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png' },
-    Leo:  { name:'Leo',  initial:'L', desc:'Cool & energetic. Makes every lesson feel like a real conversation.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048711/IMG_3609_xilebh.png' },
-    Nova: { name:'Nova', initial:'N', desc:'Patient & clear. Perfect for learners starting from zero.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048595/IMG_3607_xstecn.png' }
+    // The personas describe teaching style, not a language — the language pair
+    // is stored per user, so the same three tutors work for any of them.
+    Maya: { name:'Maya', initial:'M', desc:'Warm and bilingual. Patient with hesitation, quick to reassure.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png' },
+    Leo:  { name:'Leo',  initial:'L', desc:'Cool and energetic. Makes every lesson feel like a real conversation.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048711/IMG_3609_xilebh.png' },
+    Nova: { name:'Nova', initial:'N', desc:'Patient and clear. Perfect for learners starting from zero.', img:'https://res.cloudinary.com/fajdj3ej/image/upload/v1785048595/IMG_3607_xstecn.png' }
   };
 
   let tutor = tutorData.Maya;
@@ -705,9 +819,15 @@
     if (!currentUser || !supabaseClient) return;
     try {
       const { data, error } = await supabaseClient
-        .from('users').select('plan, level').eq('id', currentUser.id).maybeSingle();
+        .from('users').select('plan, level, learning_language, native_language').eq('id', currentUser.id).maybeSingle();
       if (!error && data) {
         userPlan = (data.plan || 'free').toLowerCase();
+        learnLang = data.learning_language || 'en';
+        nativeLang = data.native_language || 'es';
+        micLang = LEARN_LANGS[learnLang]?.mic || 'en-US';
+        renderLangPicker();
+        const mt = document.getElementById('micTargetName');
+        if (mt) mt.textContent = LEARN_LANGS[learnLang]?.[lang] || 'English';
         if (data.level) {
           const badge = document.getElementById('levelBadge');
           if (badge) { badge.textContent = data.level; badge.className = 'badge level-badge level-' + data.level.toLowerCase(); }
@@ -937,19 +1057,29 @@
 
   function updateVolume(val) { currentVolume = parseFloat(val); }
 
-  function setMicLang(lang) {
-    micLang = lang;
+  // Two mic modes: speak the language you are learning (the tutor grades you),
+  // or fall back to your own language when you get stuck.
+  function setMicLang(which) {
+    const targetMic = LEARN_LANGS[learnLang]?.mic || 'en-US';
+    const nativeMic = LEARN_LANGS[nativeLang]?.mic || 'es-US';
+    const onTarget = (which !== 'native');
+    micLang = onTarget ? targetMic : nativeMic;
+
+    document.getElementById('micTarget').classList.toggle('active', onTarget);
+    document.getElementById('micNative').classList.toggle('active', !onTarget);
+
+    const targetName = LEARN_LANGS[learnLang]?.[lang] || 'English';
+    const nativeName = LEARN_LANGS[nativeLang]?.[lang] || 'Spanish';
     const lbl = document.getElementById('voiceLabel');
     const inp = document.getElementById('chatInput');
-    document.getElementById('langEn').classList.toggle('active', lang === 'en-US');
-    document.getElementById('langEs').classList.toggle('active', lang === 'es-US');
-    if (!planAllows('voice')) { lbl.textContent = 'Voice practice is included in Pro'; return; }
-    if (lang === 'en-US') {
-      lbl.textContent = 'Speak English — tutor evaluates you';
-      inp.placeholder = 'Type or tap 🎤 to speak in English...';
+
+    if (!planAllows('voice')) { lbl.textContent = t('voice.proOnly'); return; }
+    if (onTarget) {
+      lbl.textContent = t('voice.target').replace('{lang}', targetName);
+      inp.placeholder  = t('voice.phTarget').replace('{lang}', targetName);
     } else {
-      lbl.textContent = 'Habla español — el tutor te ayuda';
-      inp.placeholder = 'Escribe o toca 🎤 para hablar en español...';
+      lbl.textContent = t('voice.native').replace('{lang}', nativeName);
+      inp.placeholder  = t('voice.phNative').replace('{lang}', nativeName);
     }
   }
 
@@ -1043,7 +1173,7 @@
     }
 
     if (chatHistory.length === 0) {
-      const greeting = `Hi! I'm ${tutor.name} 👋 I'm your English tutor at Talkova. You can type or use the 🎤 microphone to speak — whatever feels comfortable! What would you like to practice today?`;
+            const greeting = t('chat.greet').replace('{name}', tutor.name);
       addMessage('ai', greeting);
       chatHistory.push({ role:'assistant', content: greeting });
       setTimeout(() => speak(greeting), 400);
