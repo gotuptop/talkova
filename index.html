@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -140,6 +139,12 @@
   .toast.show{opacity:1}
   button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--purple-light);outline-offset:2px}
 
+  .nav-right{display:flex;align-items:center;gap:14px}
+  .lang-switch{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:2px;gap:2px}
+  .lang-btn{font-size:11px;font-weight:700;letter-spacing:.04em;padding:5px 11px;border-radius:999px;cursor:pointer;border:none;background:none;color:var(--text-muted);transition:all .2s}
+  .lang-btn.active{background:var(--purple);color:#fff}
+  @media (max-width:520px){nav{padding:1rem 1.1rem}.nav-right{gap:8px}}
+
   .plan-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;border:none}
   .plan-free{background:var(--surface);color:var(--text-muted)}
   .plan-pro{background:rgba(83,74,183,.25);color:var(--purple-light)}
@@ -237,107 +242,113 @@
 
 <nav>
   <div class="logo">talk<span>ova</span></div>
+  <div class="nav-right">
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button class="lang-btn active" id="langEs" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" id="langEn2" onclick="setLang('en')">EN</button>
+    </div>
   <div style="display:flex;gap:12px" id="navActions">
-    <button class="btn-g" onclick="showApp()">Try free</button>
-    <button class="btn-p" onclick="showApp()">Start learning</button>
+    <button class="btn-g" data-i18n="nav.try" onclick="showApp()">Try free</button>
+    <button class="btn-p" data-i18n="nav.start" onclick="showApp()">Start learning</button>
   </div>
   <div class="user-info" id="navUser" style="display:none">
     <div class="user-avatar" id="navUserAvatar">U</div>
-    <button class="logout-btn" onclick="handleLogout()">Sign out</button>
+    <button class="logout-btn" data-i18n="nav.signout" onclick="handleLogout()">Sign out</button>
+  </div>
   </div>
 </nav>
 
 <div id="landing" class="screen active">
   <section class="hero">
-    <div class="eyebrow"><div class="pulse"></div>AI-powered · Available 24/7</div>
-    <h1>Speak English<br>with <em>real confidence</em></h1>
-    <p class="hsub">Practice natural conversations with an AI tutor that corrects you gently, explains why, and adapts to your level — in Spanish or English.</p>
+    <div class="eyebrow"><div class="pulse"></div><span data-i18n="hero.eyebrow">AI-powered · Available 24/7</span></div>
+    <h1 data-i18n-html="hero.h1">Speak English<br>with <em>real confidence</em></h1>
+    <p class="hsub" data-i18n="hero.sub">Practice natural conversations with an AI tutor that corrects you gently, explains why, and adapts to your level — in Spanish or English.</p>
     <div class="wlf">
-      <input class="wli" type="email" id="emailInput" placeholder="your@email.com"/>
-      <button class="btn-cta" onclick="joinWaitlist()">Get early access</button>
+      <input class="wli" type="email" id="emailInput" data-i18n-ph="hero.email" placeholder="your@email.com"/>
+      <button class="btn-cta" data-i18n="hero.cta" onclick="joinWaitlist()">Get early access</button>
     </div>
-    <p class="hint">Free to start — no credit card needed</p>
+    <p class="hint" data-i18n="hero.hint">Free to start — no credit card needed</p>
   </section>
 
   <section class="ts">
-    <p class="slabel">Choose your tutor</p>
+    <p class="slabel" data-i18n="tutors.label">Choose your tutor</p>
     <div class="trow">
       <div class="tc sel" onclick="selectTutor(this,'Maya')">
-        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" alt="Maya"/><div class="tn">Maya</div><div class="td">Warm &amp; bilingual. Grew up speaking Spanish.</div>
+        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" alt="Maya"/><div class="tn">Maya</div><div class="td" data-i18n="tutors.maya">Warm &amp; bilingual. Grew up speaking Spanish.</div>
       </div>
       <div class="tc" onclick="selectTutor(this,'Leo')">
-        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048711/IMG_3609_xilebh.png" alt="Leo"/><div class="tn">Leo</div><div class="td">Cool &amp; energetic. Lessons that feel like a hang.</div>
+        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048711/IMG_3609_xilebh.png" alt="Leo"/><div class="tn">Leo</div><div class="td" data-i18n="tutors.leo">Cool &amp; energetic. Lessons that feel like a hang.</div>
       </div>
       <div class="tc" onclick="selectTutor(this,'Nova')">
-        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048595/IMG_3607_xstecn.png" alt="Nova"/><div class="tn">Nova</div><div class="td">Patient &amp; clear. Perfect for total beginners.</div>
+        <img class="tav" src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048595/IMG_3607_xstecn.png" alt="Nova"/><div class="tn">Nova</div><div class="td" data-i18n="tutors.nova">Patient &amp; clear. Perfect for total beginners.</div>
       </div>
     </div>
     <div class="dbox">
       <div class="dhdr"><div class="ddot"></div><span id="demoLabel">Live preview — Maya is online</span></div>
       <div class="dmsgs">
-        <div class="dm"><div class="dav" id="demoAv"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/></div><div class="db ai">Hi! I'm <span id="demoName">Maya</span> 👋 Let's practice ordering at a restaurant. You go first!</div></div>
-        <div class="dm u"><div class="dav" style="background:var(--purple);color:white">U</div><div class="db usr">I want order a coffee please.</div></div>
-        <div class="dm"><div class="dav" id="demoAv2"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/></div><div class="db ai">Almost perfect! <span class="tag tw">I want order</span>→<span class="tag tr">I'd like to order ✓</span> We add "to" after "want." Try again!</div></div>
+        <div class="dm"><div class="dav" id="demoAv"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/></div><div class="db ai" id="demoGreet">Hi! I'm <span id="demoName">Maya</span> 👋 Let's practice ordering at a restaurant. You go first!</div></div>
+        <div class="dm u"><div class="dav" style="background:var(--purple);color:white">U</div><div class="db usr" id="demoUser">I want order a coffee please.</div></div>
+        <div class="dm"><div class="dav" id="demoAv2"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/></div><div class="db ai" id="demoFix">Almost perfect! <span class="tag tw">I want order</span>→<span class="tag tr">I'd like to order ✓</span> We add "to" after "want." Try again!</div></div>
       </div>
-      <button class="bstart" onclick="showApp()">Start your free session →</button>
+      <button class="bstart" data-i18n="demo.start" onclick="showApp()">Start your free session →</button>
     </div>
   </section>
 
   <div class="feats">
-    <div class="feat"><div class="fi">💬</div><div class="ft">Real conversations</div><div class="fd">Practice everyday situations with a patient AI partner.</div></div>
-    <div class="feat"><div class="fi">✨</div><div class="ft">Instant corrections</div><div class="fd">Learn from mistakes without embarrassment.</div></div>
-    <div class="feat"><div class="fi">🌎</div><div class="ft">Built for Latinos</div><div class="fd">Switch to Spanish whenever you need to.</div></div>
-    <div class="feat"><div class="fi">📈</div><div class="ft">Track your growth</div><div class="fd">See your progress week by week.</div></div>
+    <div class="feat"><div class="fi">💬</div><div class="ft" data-i18n="feat.1t">Real conversations</div><div class="fd" data-i18n="feat.1d">Practice everyday situations with a patient AI partner.</div></div>
+    <div class="feat"><div class="fi">✨</div><div class="ft" data-i18n="feat.2t">Instant corrections</div><div class="fd" data-i18n="feat.2d">Learn from mistakes without embarrassment.</div></div>
+    <div class="feat"><div class="fi">🌎</div><div class="ft" data-i18n="feat.3t">Built for Latinos</div><div class="fd" data-i18n="feat.3d">Switch to Spanish whenever you need to.</div></div>
+    <div class="feat"><div class="fi">📈</div><div class="ft" data-i18n="feat.4t">Track your growth</div><div class="fd" data-i18n="feat.4d">See your progress week by week.</div></div>
   </div>
 
   <section id="pricing">
-    <h2 class="pricing-title">Simple, honest pricing</h2>
-    <p class="pricing-sub">Start free. Upgrade when you're ready.</p>
+    <h2 class="pricing-title" data-i18n="pr.title">Simple, honest pricing</h2>
+    <p class="pricing-sub" data-i18n="pr.sub">Start free. Upgrade when you're ready.</p>
     <div class="pricing-grid">
 
       <div class="plan">
-        <div class="plan-name">Free</div>
+        <div class="plan-name" data-i18n="pr.free">Free</div>
         <div class="plan-price">$0<span>/mo</span></div>
-        <p class="plan-desc">Perfect to try Talkova and see if it's right for you.</p>
-        <button class="plan-btn free" onclick="showApp()">Start for free →</button>
+        <p class="plan-desc" data-i18n="pr.freeDesc">Perfect to try Talkova and see if it's right for you.</p>
+        <button class="plan-btn free" data-i18n="pr.freeBtn" onclick="showApp()">Start for free →</button>
         <ul class="plan-features">
-          <li>5 conversations per day</li>
-          <li>All 3 AI tutors</li>
-          <li>Text chat</li>
-          <li class="no">Voice conversations</li>
-          <li class="no">Progress tracking</li>
-          <li class="no">Night audio lessons</li>
+          <li data-i18n="f.5conv">5 conversations per day</li>
+          <li data-i18n="f.tutors">All 3 AI tutors</li>
+          <li data-i18n="f.text">Text chat</li>
+          <li class="no" data-i18n="f.voiceN">Voice conversations</li>
+          <li class="no" data-i18n="f.progN">Progress tracking</li>
+          <li class="no" data-i18n="f.nightN">Night audio lessons</li>
         </ul>
       </div>
 
       <div class="plan popular">
-        <div class="plan-badge">⭐ Most popular</div>
+        <div class="plan-badge" data-i18n="pr.popular">⭐ Most popular</div>
         <div class="plan-name">Pro</div>
         <div class="plan-price">$9.99<span>/mo</span></div>
-        <p class="plan-desc">Unlimited practice with voice, corrections and progress tracking.</p>
-        <button class="plan-btn pro" onclick="handleCheckout('pro')">Get Pro →</button>
+        <p class="plan-desc" data-i18n="pr.proDesc">Unlimited practice with voice, corrections and progress tracking.</p>
+        <button class="plan-btn pro" data-i18n="pr.proBtn" onclick="handleCheckout('pro')">Get Pro →</button>
         <ul class="plan-features">
-          <li>Unlimited conversations</li>
-          <li>All 3 AI tutors</li>
-          <li>Voice conversations 🎤</li>
-          <li>Instant corrections</li>
-          <li>Progress tracking</li>
-          <li class="no">Night audio lessons</li>
+          <li data-i18n="f.unlim">Unlimited conversations</li>
+          <li data-i18n="f.tutors">All 3 AI tutors</li>
+          <li data-i18n="f.voiceY">Voice conversations 🎤</li>
+          <li data-i18n="f.corr">Instant corrections</li>
+          <li data-i18n="f.prog">Progress tracking</li>
+          <li class="no" data-i18n="f.nightN">Night audio lessons</li>
         </ul>
       </div>
 
       <div class="plan">
         <div class="plan-name">Premium</div>
         <div class="plan-price">$19.99<span>/mo</span></div>
-        <p class="plan-desc">Full immersion with subconscious learning while you sleep.</p>
-        <button class="plan-btn premium" onclick="handleCheckout('premium')">Get Premium →</button>
+        <p class="plan-desc" data-i18n="pr.premDesc">Full immersion with subconscious learning while you sleep.</p>
+        <button class="plan-btn premium" data-i18n="pr.premBtn" onclick="handleCheckout('premium')">Get Premium →</button>
         <ul class="plan-features">
-          <li>Everything in Pro</li>
-          <li>Night audio at 25% volume</li>
-          <li>PDF lesson guides</li>
-          <li>Personalized algorithm</li>
-          <li>Priority support</li>
-          <li>Early access to new features</li>
+          <li data-i18n="f.allpro">Everything in Pro</li>
+          <li data-i18n="f.night25">Night audio at 25% volume</li>
+          <li data-i18n="f.pdf">PDF lesson guides</li>
+          <li data-i18n="f.algo">Personalized algorithm</li>
+          <li data-i18n="f.support">Priority support</li>
+          <li data-i18n="f.early">Early access to new features</li>
         </ul>
       </div>
 
@@ -345,10 +356,10 @@
 
     <div class="legal-section" style="margin-top:3rem">
       <div class="legal-links">
-        <a href="/terms.html">Terms of Service</a>
-        <a href="/privacy.html">Privacy Policy</a>
-        <a href="/refund.html">Refund Policy</a>
-        <a href="mailto:support@talkova.app">Contact Support</a>
+        <a href="/terms.html" data-i18n="lg.terms">Terms of Service</a>
+        <a href="/privacy.html" data-i18n="lg.privacy">Privacy Policy</a>
+        <a href="/refund.html" data-i18n="lg.refund">Refund Policy</a>
+        <a href="mailto:support@talkova.app" data-i18n="lg.contact">Contact Support</a>
       </div>
       <p class="legal-copy">© 2026 Talkova. All rights reserved. · Subscriptions renew monthly. Cancel anytime — no questions asked. · Refunds available within 7 days of purchase.</p>
     </div>
@@ -410,21 +421,21 @@
 <div id="authScreen">
   <div class="auth-box">
     <div class="auth-logo">talk<span>ova</span></div>
-    <p class="auth-sub">Your AI English tutor, available 24/7</p>
+    <p class="auth-sub" data-i18n="au.sub">Your AI English tutor, available 24/7</p>
     <div class="auth-tabs">
-      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign in</button>
-      <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Sign up</button>
+      <button class="auth-tab active" id="tabLogin" data-i18n="au.signin" onclick="switchTab('login')">Sign in</button>
+      <button class="auth-tab" id="tabRegister" data-i18n="au.signup" onclick="switchTab('register')">Sign up</button>
     </div>
     <div id="loginForm">
-      <input class="auth-input" type="email" id="loginEmail" placeholder="your@email.com"/>
-      <input class="auth-input" type="password" id="loginPassword" placeholder="Password"/>
-      <button class="auth-btn" onclick="handleLogin()">Sign in →</button>
+      <input class="auth-input" type="email" id="loginEmail" data-i18n-ph="au.email" placeholder="your@email.com"/>
+      <input class="auth-input" type="password" id="loginPassword" data-i18n-ph="au.pass" placeholder="Password"/>
+      <button class="auth-btn" data-i18n="au.signinBtn" onclick="handleLogin()">Sign in →</button>
     </div>
     <div id="registerForm" style="display:none">
-      <input class="auth-input" type="text" id="regName" placeholder="Your name"/>
-      <input class="auth-input" type="email" id="regEmail" placeholder="your@email.com"/>
-      <input class="auth-input" type="password" id="regPassword" placeholder="Create a password (min 6 chars)"/>
-      <button class="auth-btn" onclick="handleRegister()">Create account →</button>
+      <input class="auth-input" type="text" id="regName" data-i18n-ph="au.name" placeholder="Your name"/>
+      <input class="auth-input" type="email" id="regEmail" data-i18n-ph="au.email" placeholder="your@email.com"/>
+      <input class="auth-input" type="password" id="regPassword" data-i18n-ph="au.newpass" placeholder="Create a password (min 6 chars)"/>
+      <button class="auth-btn" data-i18n="au.signupBtn" onclick="handleRegister()">Create account →</button>
     </div>
     <p class="auth-err" id="authErr"></p>
   </div>
@@ -437,6 +448,143 @@
    token. The server reads identity and plan from that token, so
    nothing here is trusted for access control.
    ============================================================ */
+
+
+/* ------------------------------------------------------------
+   Idiomas — la landing arranca en español porque ese es el
+   público. El inglés queda a un clic para quien lo prefiera.
+   ------------------------------------------------------------ */
+
+  const I18N = {
+    es: {
+      'nav.try':'Probar gratis', 'nav.start':'Empezar', 'nav.signout':'Cerrar sesión',
+      'hero.eyebrow':'Con inteligencia artificial · Disponible 24/7',
+      'hero.h1':'Habla inglés<br>con <em>verdadera confianza</em>',
+      'hero.sub':'Practica conversaciones reales con un tutor de IA que te corrige con calma, te explica por qué, y se adapta a tu nivel — en español o en inglés.',
+      'hero.email':'tu@correo.com',
+      'hero.cta':'Quiero acceso',
+      'hero.hint':'Empieza gratis — sin tarjeta de crédito',
+      'tutors.label':'Elige tu tutor',
+      'tutors.maya':'Cálida y bilingüe. Creció hablando español.',
+      'tutors.leo':'Relajado y con energía. Clases que se sienten como una plática.',
+      'tutors.nova':'Paciente y clara. Ideal si empiezas desde cero.',
+      'demo.label':'Vista previa — {name} está en línea',
+      'demo.greet':"¡Hola! Soy {name} 👋 Vamos a practicar cómo pedir en un restaurante. ¡Empieza tú!",
+      'demo.user':'I want order a coffee please.',
+      'demo.fix':'¡Casi perfecto! <span class="tag tw">I want order</span>→<span class="tag tr">I\'d like to order ✓</span> Después de "want" va "to". ¡Inténtalo otra vez!',
+      'demo.start':'Empieza tu sesión gratis →',
+      'feat.1t':'Conversaciones de verdad','feat.1d':'Practica situaciones del día a día con alguien que nunca se impacienta.',
+      'feat.2t':'Correcciones al instante','feat.2d':'Aprende de tus errores sin pasar pena.',
+      'feat.3t':'Hecho para latinos','feat.3d':'Cámbiate al español cuando lo necesites.',
+      'feat.4t':'Mira tu avance','feat.4d':'Tu progreso, semana a semana.',
+      'pr.title':'Precios claros, sin sorpresas','pr.sub':'Empieza gratis. Súbete de plan cuando quieras.',
+      'pr.free':'Gratis','pr.freeDesc':'Perfecto para probar Talkova y ver si es para ti.','pr.freeBtn':'Empezar gratis →',
+      'pr.popular':'⭐ El más elegido',
+      'pr.proDesc':'Práctica sin límite, con voz, correcciones y seguimiento de tu avance.','pr.proBtn':'Quiero Pro →',
+      'pr.premDesc':'Inmersión completa, con aprendizaje mientras duermes.','pr.premBtn':'Quiero Premium →',
+      'f.5conv':'5 conversaciones al día','f.text':'Chat de texto','f.unlim':'Conversaciones sin límite',
+      'f.voiceY':'Conversaciones por voz 🎤','f.corr':'Correcciones al instante',
+      'f.allpro':'Todo lo de Pro','f.night25':'Audio nocturno al 25% de volumen','f.pdf':'Guías de lección en PDF',
+      'f.algo':'Algoritmo personalizado','f.support':'Soporte prioritario','f.early':'Acceso anticipado a lo nuevo',
+      'f.tutors':'Los 3 tutores de IA','f.voiceN':'Conversaciones por voz','f.progN':'Seguimiento de avance',
+      'f.nightN':'Lecciones de audio nocturnas','f.prog':'Seguimiento de avance',
+      'lg.terms':'Términos del servicio','lg.privacy':'Aviso de privacidad','lg.refund':'Política de reembolsos','lg.contact':'Contactar soporte',
+      'lg.copy':'© 2026 Talkova. Todos los derechos reservados. · Las suscripciones se renuevan cada mes. Cancela cuando quieras, sin preguntas. · Reembolsos dentro de los primeros 7 días.',
+      'au.sub':'Tu tutor de inglés con IA, disponible 24/7',
+      'au.signin':'Iniciar sesión','au.signup':'Crear cuenta',
+      'au.email':'tu@correo.com','au.pass':'Contraseña','au.signinBtn':'Entrar →',
+      'au.name':'Tu nombre','au.newpass':'Crea una contraseña (mínimo 6)','au.signupBtn':'Crear cuenta →'
+    },
+    en: {
+      'nav.try':'Try free', 'nav.start':'Start learning', 'nav.signout':'Sign out',
+      'hero.eyebrow':'AI-powered · Available 24/7',
+      'hero.h1':'Speak English<br>with <em>real confidence</em>',
+      'hero.sub':'Practice natural conversations with an AI tutor that corrects you gently, explains why, and adapts to your level — in Spanish or English.',
+      'hero.email':'your@email.com',
+      'hero.cta':'Get early access',
+      'hero.hint':'Free to start — no credit card needed',
+      'tutors.label':'Choose your tutor',
+      'tutors.maya':'Warm &amp; bilingual. Grew up speaking Spanish.',
+      'tutors.leo':'Cool &amp; energetic. Lessons that feel like a hang.',
+      'tutors.nova':'Patient &amp; clear. Perfect for total beginners.',
+      'demo.label':'Live preview — {name} is online',
+      'demo.greet':"Hi! I'm {name} 👋 Let's practice ordering at a restaurant. You go first!",
+      'demo.user':'I want order a coffee please.',
+      'demo.fix':'Almost perfect! <span class="tag tw">I want order</span>→<span class="tag tr">I\'d like to order ✓</span> We add "to" after "want." Try again!',
+      'demo.start':'Start your free session →',
+      'feat.1t':'Real conversations','feat.1d':'Practice everyday situations with a patient AI partner.',
+      'feat.2t':'Instant corrections','feat.2d':'Learn from mistakes without embarrassment.',
+      'feat.3t':'Built for Latinos','feat.3d':'Switch to Spanish whenever you need to.',
+      'feat.4t':'Track your growth','feat.4d':'See your progress week by week.',
+      'pr.title':'Simple, honest pricing','pr.sub':"Start free. Upgrade when you're ready.",
+      'pr.free':'Free','pr.freeDesc':"Perfect to try Talkova and see if it's right for you.",'pr.freeBtn':'Start for free →',
+      'pr.popular':'⭐ Most popular',
+      'pr.proDesc':'Unlimited practice with voice, corrections and progress tracking.','pr.proBtn':'Get Pro →',
+      'pr.premDesc':'Full immersion with subconscious learning while you sleep.','pr.premBtn':'Get Premium →',
+      'f.5conv':'5 conversations per day','f.text':'Text chat','f.unlim':'Unlimited conversations',
+      'f.voiceY':'Voice conversations 🎤','f.corr':'Instant corrections',
+      'f.allpro':'Everything in Pro','f.night25':'Night audio at 25% volume','f.pdf':'PDF lesson guides',
+      'f.algo':'Personalized algorithm','f.support':'Priority support','f.early':'Early access to new features',
+      'f.tutors':'All 3 AI tutors','f.voiceN':'Voice conversations','f.progN':'Progress tracking',
+      'f.nightN':'Night audio lessons','f.prog':'Progress tracking',
+      'lg.terms':'Terms of Service','lg.privacy':'Privacy Policy','lg.refund':'Refund Policy','lg.contact':'Contact Support',
+      'lg.copy':'© 2026 Talkova. All rights reserved. · Subscriptions renew monthly. Cancel anytime — no questions asked. · Refunds available within 7 days of purchase.',
+      'au.sub':'Your AI English tutor, available 24/7',
+      'au.signin':'Sign in','au.signup':'Sign up',
+      'au.email':'your@email.com','au.pass':'Password','au.signinBtn':'Sign in →',
+      'au.name':'Your name','au.newpass':'Create a password (min 6 chars)','au.signupBtn':'Create account →'
+    }
+  };
+
+  let lang = 'es';
+
+  function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || ''; }
+
+  function setLang(next) {
+    lang = (next === 'en') ? 'en' : 'es';
+    document.documentElement.lang = lang;
+    try { localStorage.setItem('talkova_lang', lang); } catch (e) { /* private mode */ }
+    document.getElementById('langEs').classList.toggle('active', lang === 'es');
+    document.getElementById('langEn2').classList.toggle('active', lang === 'en');
+    applyLang();
+  }
+
+  function applyLang() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const v = t(el.getAttribute('data-i18n'));
+      if (v) el.innerHTML = v;
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+      const v = t(el.getAttribute('data-i18n-html'));
+      if (v) el.innerHTML = v;
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+      const v = t(el.getAttribute('data-i18n-ph'));
+      if (v) el.placeholder = v;
+    });
+    // El bloque de demo lleva el nombre del tutor dentro del texto.
+    const dl = document.getElementById('demoLabel');
+    if (dl) dl.textContent = t('demo.label').replace('{name}', tutor.name);
+    const dg = document.getElementById('demoGreet');
+    if (dg) dg.innerHTML = t('demo.greet').replace('{name}', tutor.name);
+    const du = document.getElementById('demoUser');
+    if (du) du.textContent = t('demo.user');
+    const df = document.getElementById('demoFix');
+    if (df) df.innerHTML = t('demo.fix');
+    const lc = document.querySelector('.legal-copy');
+    if (lc) lc.textContent = t('lg.copy');
+  }
+
+  function initLang() {
+    let saved = null;
+    try { saved = localStorage.getItem('talkova_lang'); } catch (e) {}
+    if (!saved) {
+      // Sin preferencia guardada: seguimos el idioma del navegador,
+      // con español como opción por defecto.
+      saved = (navigator.language || '').toLowerCase().startsWith('en') ? 'en' : 'es';
+    }
+    setLang(saved);
+  }
 
   const FREE_DAILY_LIMIT = 5;
 
@@ -873,8 +1021,8 @@
     currentConversationId = null;
     const area = document.getElementById('chatArea');
     if (area) area.innerHTML = '';
-    document.getElementById('demoLabel').textContent = `Live preview — ${tutor.name} is online`;
-    document.getElementById('demoName').textContent = tutor.name;
+    document.getElementById('demoLabel').textContent = t('demo.label').replace('{name}', tutor.name);
+    document.getElementById('demoGreet').innerHTML = t('demo.greet').replace('{name}', tutor.name);
     document.getElementById('demoAv').innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
     document.getElementById('demoAv2').innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
   }
@@ -910,8 +1058,8 @@
 
   function joinWaitlist() {
     const email = document.getElementById('emailInput').value.trim();
-    if (!email.includes('@')) { showToast('Enter a valid email address 📧'); return; }
-    showToast("You're on the list. We'll be in touch 🎉");
+    if (!email.includes('@')) { showToast(lang === 'es' ? 'Escribe un correo válido 📧' : 'Enter a valid email address 📧'); return; }
+    showToast(lang === 'es' ? 'Ya estás en la lista. Te escribimos pronto 🎉' : "You're on the list. We'll be in touch 🎉");
     document.getElementById('emailInput').value = '';
   }
 
@@ -1307,8 +1455,9 @@ ${lesson.homework ? `
   document.addEventListener('touchstart', unlockIOSAudio);
   document.addEventListener('click', unlockIOSAudio);
 
+  initLang();
   window.addEventListener('load', initSupabase);
 </script>
 
 </body>
-</ht
+</html>
