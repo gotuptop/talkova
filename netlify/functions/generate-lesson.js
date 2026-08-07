@@ -1,9 +1,46 @@
 // netlify/functions/generate-lesson.js
 // Builds the end-of-session lesson summary and files it under the student's account.
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
+
+const LANGUAGES = {
+  en: 'English',
+  es: 'Spanish',
+  pt: 'Portuguese',
+  fr: 'French',
+  it: 'Italian',
+  de: 'German',
+  nl: 'Dutch',
+  pl: 'Polish',
+  sv: 'Swedish',
+  da: 'Danish',
+  no: 'Norwegian',
+  fi: 'Finnish',
+  cs: 'Czech',
+  sk: 'Slovak',
+  hu: 'Hungarian',
+  ro: 'Romanian',
+  bg: 'Bulgarian',
+  hr: 'Croatian',
+  el: 'Greek',
+  uk: 'Ukrainian',
+  ru: 'Russian',
+  tr: 'Turkish',
+  ar: 'Arabic',
+  hi: 'Hindi',
+  ta: 'Tamil',
+  ja: 'Japanese',
+  ko: 'Korean',
+  zh: 'Chinese',
+  id: 'Indonesian',
+  ms: 'Malay',
+  fil: 'Filipino',
+  vi: 'Vietnamese'
+};
+const langName = code => LANGUAGES[code] || LANGUAGES.en;
 
 const json = (statusCode, payload) => ({
   statusCode,
@@ -20,7 +57,10 @@ async function getUser(event) {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` }
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error('Auth check rejected:', res.status, await res.text());
+      return null;
+    }
     const user = await res.json();
     return user && user.id ? user : null;
   } catch (e) {
@@ -30,16 +70,20 @@ async function getUser(event) {
 }
 
 // Reads the plan straight from the database — never from the request body.
-async function getPlan(userId) {
+async function getProfile(userId) {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=plan`,
-      { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=plan,learning_language,native_language`,
+      { headers: { apikey: SERVICE_KEY } }
     );
-    const rows = await res.json();
-    return (rows[0]?.plan || 'free').toLowerCase();
+    const row = (await res.json())[0] || {};
+    return {
+      plan: (row.plan || 'free').toLowerCase(),
+      learning: row.learning_language || 'en',
+      native: row.native_language || 'es'
+    };
   } catch (e) {
-    return 'free';
+    return { plan: 'free', learning: 'en', native: 'es' };
   }
 }
 
@@ -53,7 +97,6 @@ async function lessonsToday(userId) {
       {
         headers: {
           apikey: SERVICE_KEY,
-          Authorization: `Bearer ${SERVICE_KEY}`,
           Prefer: 'count=exact',
           Range: '0-0'
         }
@@ -76,7 +119,10 @@ exports.handler = async function (event) {
     return json(401, { error: 'Sign in to generate your lesson.' });
   }
 
-  const plan = await getPlan(user.id);
+  const profile = await getProfile(user.id);
+  const plan = profile.plan;
+  const target = langName(profile.learning);
+  const native = langName(profile.native);
 
   if (plan === 'free' && (await lessonsToday(user.id)) >= 5) {
     return json(402, {
@@ -102,7 +148,9 @@ exports.handler = async function (event) {
     .map(m => `${m.role === 'user' ? 'Student' : tutorName}: ${m.content}`)
     .join('\n');
 
-  const summaryPrompt = `Based on this English tutoring conversation, create a personalized lesson summary.
+  const summaryPrompt = `Based on this ${target} tutoring conversation, create a personalized lesson summary.
+The learner speaks ${native} and is learning ${target}. Write the key phrases and the
+night audio script in ${target}; write the tips and explanations in ${native}.
 
 Conversation:
 ${transcript}
@@ -113,7 +161,7 @@ Create a lesson summary in this exact JSON format, and return nothing else:
   "topic": "Main topic practiced",
   "key_phrases": ["phrase 1", "phrase 2", "phrase 3", "phrase 4", "phrase 5"],
   "corrections": [{"wrong": "error made", "correct": "correct version", "tip": "brief explanation"}],
-  "night_audio_script": "A calm, slow script with the key phrases to listen to before sleep. Include each phrase twice. Use simple, encouraging language. About 100 words.",
+  "night_audio_script": "A calm, slow script in ${target} with the key phrases to listen to before sleep. Include each phrase twice. Use simple, encouraging language. About 100 words.",
   "homework": "One simple task to practice before next session"
 }`;
 
@@ -156,7 +204,6 @@ Create a lesson summary in this exact JSON format, and return nothing else:
         method: 'POST',
         headers: {
           apikey: SERVICE_KEY,
-          Authorization: `Bearer ${SERVICE_KEY}`,
           'Content-Type': 'application/json',
           Prefer: 'return=representation'
         },
@@ -185,7 +232,6 @@ Create a lesson summary in this exact JSON format, and return nothing else:
           method: 'PATCH',
           headers: {
             apikey: SERVICE_KEY,
-            Authorization: `Bearer ${SERVICE_KEY}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ errors_made: lesson.corrections })
@@ -195,7 +241,7 @@ Create a lesson summary in this exact JSON format, and return nothing else:
       }
     }
 
-    return json(200, { lesson, plan });
+    return json(200, { lesson, plan, learning: profile.learning });
   } catch (error) {
     console.error('generate-lesson error:', error);
     return json(500, { error: 'Something went wrong building the lesson.' });
