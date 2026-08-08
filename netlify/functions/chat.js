@@ -9,6 +9,46 @@ const FREE_DAILY_MESSAGES = 60;   // safety ceiling; the 5-conversation limit li
 const MAX_TTS_CHARS = 2000;
 const MAX_HISTORY = 30;
 
+
+// The language pair lives in the database, not in this file. Adding a language
+// is one line here plus one entry in the picker on the front end.
+const LANGUAGES = {
+  en: 'English',
+  es: 'Spanish',
+  pt: 'Portuguese',
+  fr: 'French',
+  it: 'Italian',
+  de: 'German',
+  nl: 'Dutch',
+  pl: 'Polish',
+  sv: 'Swedish',
+  da: 'Danish',
+  no: 'Norwegian',
+  fi: 'Finnish',
+  cs: 'Czech',
+  sk: 'Slovak',
+  hu: 'Hungarian',
+  ro: 'Romanian',
+  bg: 'Bulgarian',
+  hr: 'Croatian',
+  el: 'Greek',
+  uk: 'Ukrainian',
+  ru: 'Russian',
+  tr: 'Turkish',
+  ar: 'Arabic',
+  hi: 'Hindi',
+  ta: 'Tamil',
+  ja: 'Japanese',
+  ko: 'Korean',
+  zh: 'Chinese',
+  id: 'Indonesian',
+  ms: 'Malay',
+  fil: 'Filipino',
+  vi: 'Vietnamese'
+};
+
+const langName = code => LANGUAGES[code]?.name || LANGUAGES.en.name;
+
 const json = (statusCode, payload) => ({
   statusCode,
   headers: { 'Content-Type': 'application/json' },
@@ -35,16 +75,21 @@ async function getUser(event) {
   }
 }
 
-async function getPlan(userId) {
+// Plan and language pair come from the same row, so one query covers both.
+async function getProfile(userId) {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=plan`,
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=plan,learning_language,native_language`,
       { headers: { apikey: SERVICE_KEY } }
     );
-    const rows = await res.json();
-    return (rows[0]?.plan || 'free').toLowerCase();
+    const row = (await res.json())[0] || {};
+    return {
+      plan: (row.plan || 'free').toLowerCase(),
+      learning: row.learning_language || 'en',
+      native: row.native_language || 'es'
+    };
   } catch (e) {
-    return 'free';
+    return { plan: 'free', learning: 'en', native: 'es' };
   }
 }
 
@@ -81,7 +126,10 @@ exports.handler = async function (event) {
   }
 
   const { messages, tutorName, tutorDesc, tts, mode } = body;
-  const plan = await getPlan(user.id);
+  const profile = await getProfile(user.id);
+  const plan = profile.plan;
+  const target = langName(profile.learning);   // what they are learning
+  const native = langName(profile.native);     // what they already speak
 
   /* ---------- ElevenLabs: speak the reply ---------- */
   if (tts) {
@@ -151,17 +199,19 @@ exports.handler = async function (event) {
     });
   }
 
-  const systemPrompt = `You are ${tutorName}, a friendly bilingual English tutor on Talkova, built for Latino learners. Your personality: ${tutorDesc}
+  const systemPrompt = `You are ${tutorName}, a friendly bilingual ${target} tutor on Talkova. Your personality: ${tutorDesc}
+
+The learner speaks ${native} and is learning ${target}.
 
 Rules:
 - Respond warmly and encouragingly. Never make the learner feel bad.
-- When the user makes English mistakes, gently correct them: ❌ [wrong] → ✅ [correct] — explain WHY briefly.
-- If they write in Spanish, respond in Spanish AND show them how to say it in English.
+- When the user makes ${target} mistakes, gently correct them: ❌ [wrong] → ✅ [correct] — explain WHY briefly.
+- If they write in ${native}, respond in ${native} AND show them how to say it in ${target}.
 - Keep responses short: 2–4 sentences. Always end with a follow-up question to keep the conversation going.
 - Feel like a supportive bilingual friend, not a textbook.
 
 IMPORTANT: At the end of every response, add a JSON block (hidden from display) with this exact format:
-<progress>{"errors":["list any grammar errors the user made"],"topics":["topic of this conversation e.g. greetings, restaurant, work, family"],"level":"Beginner or Intermediate or Advanced based on user's English"}</progress>`;
+<progress>{"errors":["list any grammar errors the user made"],"topics":["topic of this conversation e.g. greetings, restaurant, work, family"],"level":"Beginner or Intermediate or Advanced based on the learner's ${target}"}</progress>`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -232,7 +282,9 @@ IMPORTANT: At the end of every response, add a JSON block (hidden from display) 
     return json(200, {
       content: cleanText,
       progress: plan === 'free' ? null : progressData,
-      plan
+      plan,
+      learning: profile.learning,
+      native: profile.native
     });
   } catch (error) {
     console.error('chat error:', error);
