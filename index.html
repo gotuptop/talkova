@@ -611,6 +611,7 @@
     if (lc) lc.textContent = t('lg.copy');
     renderLangPicker();
     refreshLangLabels();
+    renderTutor();
   }
 
   // Switching the interface language also updates which language the tutor
@@ -1205,26 +1206,43 @@
    Screens and chat
    ------------------------------------------------------------ */
 
+  const avatarImg = (px) =>
+    `<img src="${tutor.img}" alt="${tutor.name}" style="width:${px}px;height:${px}px;border-radius:50%;object-fit:cover"/>`;
+
+  // Everything that depends on which tutor is picked is painted here, so the
+  // landing and the chat can never disagree about who you are talking to.
+  function renderTutor() {
+    document.querySelectorAll('.tc').forEach(c => {
+      c.classList.toggle('sel', c.querySelector('.tn')?.textContent === tutor.name);
+    });
+    const set = (id, px) => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = avatarImg(px);
+    };
+    set('demoAv', 30); set('demoAv2', 30);
+    set('appAv', 38);  set('avFrame', 90);
+
+    const name = document.getElementById('appName');
+    if (name) name.textContent = tutor.name;
+    const dl = document.getElementById('demoLabel');
+    if (dl) dl.textContent = t('demo.label').replace('{name}', tutor.name);
+    const dg = document.getElementById('demoGreet');
+    if (dg) dg.innerHTML = t('demo.greet').replace('{name}', tutor.name);
+  }
+
   function selectTutor(card, name) {
-    document.querySelectorAll('.tc').forEach(c => c.classList.remove('sel'));
-    card.classList.add('sel');
     tutor = tutorData[name] || tutorData.Maya;
     chatHistory = [];
     currentConversationId = null;
     const area = document.getElementById('chatArea');
     if (area) area.innerHTML = '';
-    document.getElementById('demoLabel').textContent = t('demo.label').replace('{name}', tutor.name);
-    document.getElementById('demoGreet').innerHTML = t('demo.greet').replace('{name}', tutor.name);
-    document.getElementById('demoAv').innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
-    document.getElementById('demoAv2').innerHTML = `<img src="${tutor.img}" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/>`;
+    renderTutor();
   }
 
   function showApp() {
     document.getElementById('landing').classList.remove('active');
     document.getElementById('app').classList.add('active');
-    document.getElementById('appAv').innerHTML = `<img src="${tutor.img}" style="width:38px;height:38px;border-radius:50%;object-fit:cover"/>`;
-    document.getElementById('appName').textContent = tutor.name;
-    document.getElementById('avFrame').innerHTML = `<img src="${tutor.img}" style="width:90px;height:90px;border-radius:50%;object-fit:cover"/>`;
+    renderTutor();
     refreshPlanUI();
     sessionStart = Date.now();
 
