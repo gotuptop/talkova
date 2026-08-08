@@ -570,6 +570,7 @@
     document.getElementById('uiLangEs').classList.toggle('active', lang === 'es');
     document.getElementById('uiLangEn').classList.toggle('active', lang === 'en');
     applyLang();
+    syncNativeLang();
   }
 
   function applyLang() {
@@ -599,6 +600,21 @@
     renderLangPicker();
     const mt = document.getElementById('micTargetName');
     if (mt) mt.textContent = LEARN_LANGS[learnLang]?.[lang] || 'English';
+  }
+
+  // Switching the interface language also updates which language the tutor
+  // explains in — someone reading the site in Spanish speaks Spanish.
+  async function syncNativeLang() {
+    const next = (lang === 'en') ? 'en' : 'es';
+    const resolved = (next === learnLang) ? ((learnLang === 'es') ? 'en' : 'es') : next;
+    if (resolved === nativeLang) return;
+    nativeLang = resolved;
+    if (currentUser && supabaseClient) {
+      try {
+        await supabaseClient.from('users')
+          .update({ native_language: nativeLang }).eq('id', currentUser.id);
+      } catch (e) { console.error('Native language save error:', e); }
+    }
   }
 
   function initLang() {
@@ -679,6 +695,10 @@
   async function setLearnLang(code) {
     if (!LEARN_LANGS[code]) return;
     learnLang = code;
+    // The language they already speak follows the interface language — that is
+    // the one they actually read. Only when it collides with what they are
+    // learning do we fall back to the other main language.
+    nativeLang = (lang === 'en') ? 'en' : 'es';
     if (nativeLang === learnLang) nativeLang = (learnLang === 'es') ? 'en' : 'es';
     micLang = LEARN_LANGS[code].mic;
     chatHistory = [];
