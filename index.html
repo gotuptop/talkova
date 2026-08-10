@@ -330,7 +330,7 @@
           <li data-i18n="f.5conv">5 conversations per day</li>
           <li data-i18n="f.tutors">All 3 AI tutors</li>
           <li data-i18n="f.text">Text chat</li>
-          <li class="no" data-i18n="f.voiceN">Voice conversations</li>
+          <li data-i18n="f.voiceFree">10 spoken replies a day 🎤</li>
           <li class="no" data-i18n="f.progN">Progress tracking</li>
           <li class="no" data-i18n="f.nightN">Night audio lessons</li>
         </ul>
@@ -502,7 +502,7 @@
       'pr.proDesc':'Práctica sin límite, con voz, correcciones y seguimiento de tu avance.','pr.proBtn':'Quiero Pro →',
       'pr.premDesc':'Inmersión completa, con aprendizaje mientras duermes.','pr.premBtn':'Quiero Premium →',
       'f.5conv':'5 conversaciones al día','f.text':'Chat de texto','f.unlim':'Conversaciones sin límite',
-      'f.voiceY':'Conversaciones por voz 🎤','f.corr':'Correcciones al instante',
+      'f.voiceY':'Voz sin límite 🎤', 'f.voiceFree':'10 respuestas con voz al día 🎤','f.corr':'Correcciones al instante',
       'f.allpro':'Todo lo de Pro','f.night25':'Audio nocturno al 25% de volumen','f.pdf':'Guías de lección en PDF',
       'f.algo':'Algoritmo personalizado','f.support':'Soporte prioritario','f.early':'Acceso anticipado a lo nuevo',
       'f.tutors':'Los 3 tutores de IA','f.voiceN':'Conversaciones por voz','f.progN':'Seguimiento de avance',
@@ -519,6 +519,8 @@
       'voice.phTarget':'Escribe o toca 🎤 para hablar en {lang}...',
       'voice.phNative':'Escribe o toca 🎤 para pedir ayuda...',
       'voice.help':'Ayuda',
+      'voice.spent':'Se acabaron tus 10 respuestas con voz de hoy. Con Pro son ilimitadas.',
+      'mic.tap':'Toca para hablar',
       'mic.listening':'\u25cf Escuchando en {lang}...',
       'mic.denied':'Permite el micrófono en tu navegador para hablar.',
       'mic.nospeech':'No escuché nada. Toca 🎤 y habla cerca del micrófono.',
@@ -555,7 +557,7 @@
       'pr.proDesc':'Unlimited practice with voice, corrections and progress tracking.','pr.proBtn':'Get Pro →',
       'pr.premDesc':'Full immersion with subconscious learning while you sleep.','pr.premBtn':'Get Premium →',
       'f.5conv':'5 conversations per day','f.text':'Text chat','f.unlim':'Unlimited conversations',
-      'f.voiceY':'Voice conversations 🎤','f.corr':'Instant corrections',
+      'f.voiceY':'Unlimited voice 🎤', 'f.voiceFree':'10 spoken replies a day 🎤','f.corr':'Instant corrections',
       'f.allpro':'Everything in Pro','f.night25':'Night audio at 25% volume','f.pdf':'PDF lesson guides',
       'f.algo':'Personalized algorithm','f.support':'Priority support','f.early':'Early access to new features',
       'f.tutors':'All 3 AI tutors','f.voiceN':'Voice conversations','f.progN':'Progress tracking',
@@ -572,6 +574,8 @@
       'voice.phTarget':'Type or tap 🎤 to speak in {lang}...',
       'voice.phNative':'Type or tap 🎤 to ask for help...',
       'voice.help':'Help',
+      'voice.spent':"That's your 10 spoken replies for today. Pro makes them unlimited.",
+      'mic.tap':'Tap to speak',
       'mic.listening':'\u25cf Listening in {lang}...',
       'mic.denied':'Allow microphone access in your browser to speak.',
       'mic.nospeech':"I didn't hear anything. Tap 🎤 and speak close to the mic.",
@@ -793,7 +797,8 @@
   let sessionStart = Date.now();
 
   function planAllows(feature) {
-    if (feature === 'voice')     return userPlan === 'pro' || userPlan === 'premium';
+    // Free hears the tutors too — the server caps how many replies a day.
+    if (feature === 'voice')     return true;
     if (feature === 'night')     return userPlan === 'premium';
     if (feature === 'unlimited') return userPlan === 'pro' || userPlan === 'premium';
     return true;
@@ -811,14 +816,11 @@
       pill.textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
       pill.className = 'plan-pill plan-' + userPlan;
     }
-    const voiceOk = planAllows('voice');
     const mic = document.getElementById('micBtn');
+    if (mic) { mic.classList.remove('locked'); mic.textContent = '🎤'; }
     const spk = document.getElementById('spkToggle');
-    if (mic) { mic.classList.toggle('locked', !voiceOk); mic.textContent = voiceOk ? '🎤' : '🔒'; mic.title = voiceOk ? 'Tap to speak' : 'Voice is a Pro feature'; }
-    if (spk) spk.classList.toggle('locked', !voiceOk);
-    if (!voiceOk) speakerOn = false;
-    const lbl = document.getElementById('voiceLabel');
-    if (lbl && !voiceOk) lbl.textContent = 'Voice practice is included in Pro';
+    if (spk) spk.classList.remove('locked');
+    setMicLang('target');
   }
 
 /* ------------------------------------------------------------
@@ -1071,6 +1073,18 @@
         body: JSON.stringify({ tts: text, tutorName: tutor.name, mode:'tutor' })
       });
       const data = await res.json();
+      if (res.status === 402) {
+        // Daily voice allowance spent. Say so instead of quietly switching to
+        // the robotic browser voice, which reads as the app being broken.
+        document.getElementById('avFrame').classList.remove('spk');
+        document.getElementById('appStat').textContent = '\u25cf Online';
+        document.getElementById('appStat').style.color = 'var(--green)';
+        speakerOn = false;
+        const st = document.getElementById('spkToggle');
+        if (st) { st.classList.remove('on'); st.textContent = '\ud83d\udd07'; }
+        showToast(t('voice.spent'));
+        return;
+      }
       if (!res.ok || !data.audio) throw new Error('No audio');
 
       const audioBlob = new Blob([Uint8Array.from(atob(data.audio), c => c.charCodeAt(0))], { type:'audio/mpeg' });
@@ -1148,7 +1162,6 @@
     const lbl = document.getElementById('voiceLabel');
     const inp = document.getElementById('chatInput');
 
-    if (!planAllows('voice')) { lbl.textContent = t('voice.proOnly'); return; }
     if (onTarget) {
       lbl.textContent = t('voice.target').replace('{lang}', targetName);
       inp.placeholder  = t('voice.phTarget').replace('{lang}', targetName);
@@ -1262,7 +1275,6 @@
   }
 
   function toggleMic() {
-    if (!planAllows('voice')) { showToast(t('voice.proOnly')); showUpgrade(); return; }
     if (micBusy && !isListening) return;          // a tap arrived mid-transition
     if (isListening) { try { recognition.stop(); } catch (e) { micIdleUI(); } return; }
     startListening();
@@ -1312,7 +1324,7 @@
     refreshPlanUI();
     sessionStart = Date.now();
 
-    if (planAllows('voice') && navigator.mediaDevices) {
+    if (navigator.mediaDevices) {
       navigator.mediaDevices.getUserMedia({ audio:true })
         .then(stream => stream.getTracks().forEach(t => t.stop()))
         .catch(() => {});
