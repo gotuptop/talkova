@@ -519,6 +519,12 @@
       'voice.phTarget':'Escribe o toca 🎤 para hablar en {lang}...',
       'voice.phNative':'Escribe o toca 🎤 para pedir ayuda...',
       'voice.help':'Ayuda',
+      'mic.listening':'\u25cf Escuchando en {lang}...',
+      'mic.denied':'Permite el micrófono en tu navegador para hablar.',
+      'mic.nospeech':'No escuché nada. Toca 🎤 y habla cerca del micrófono.',
+      'mic.nodevice':'No encuentro el micrófono. Revisa que no lo esté usando otra app.',
+      'mic.retry':'El micrófono se cortó. Toca 🎤 otra vez.',
+      'mic.unsupported':'Este navegador no admite dictado. En iPhone usa Safari.',
       'voice.blocked':'Toca la pantalla para activar el audio. Si tu iPhone está en silencio, sube el interruptor lateral.',
       'chat.greet':'¡Hola! Soy {name} 👋 Soy tu tutor de {lang} en Talkova. Puedes escribir o tocar el 🎤 para hablar — lo que te resulte más cómodo. ¿Qué te gustaría practicar hoy?'
     },
@@ -566,6 +572,12 @@
       'voice.phTarget':'Type or tap 🎤 to speak in {lang}...',
       'voice.phNative':'Type or tap 🎤 to ask for help...',
       'voice.help':'Help',
+      'mic.listening':'\u25cf Listening in {lang}...',
+      'mic.denied':'Allow microphone access in your browser to speak.',
+      'mic.nospeech':"I didn't hear anything. Tap 🎤 and speak close to the mic.",
+      'mic.nodevice':'No microphone found. Check that another app is not using it.',
+      'mic.retry':'The mic dropped out. Tap 🎤 again.',
+      'mic.unsupported':'This browser does not support dictation. On iPhone, use Safari.',
       'voice.blocked':'Tap the screen to enable audio. If your iPhone is on silent, flip the side switch.',
       'chat.greet':"Hi! I'm {name} 👋 I'm your {lang} tutor at Talkova. You can type or tap the 🎤 to speak — whatever feels comfortable. What would you like to practice today?"
     }
@@ -1148,6 +1160,15 @@
 
   let recognition = null;
   let isListening = false;
+  let recogLang = null;     // language the current instance was built for
+  let micBusy = false;      // guards the gap between stop() and onend
+
+  function micIdleUI() {
+    document.getElementById('micBtn').classList.remove('active');
+    document.getElementById('avFrame').classList.remove('listening');
+    document.getElementById('appStat').textContent = '\u25cf Online';
+    document.getElementById('appStat').style.color = 'var(--green)';
+  }
 
   function initRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1156,50 +1177,95 @@
     r.interimResults = true;
     r.continuous = false;
     r.maxAlternatives = 3;
+
     r.onstart = () => {
       isListening = true;
+      micBusy = false;
       document.getElementById('micBtn').classList.add('active');
       document.getElementById('avFrame').classList.add('listening');
-      document.getElementById('appStat').textContent = micLang === 'en-US' ? '● Listening in English...' : '● Escuchando en español...';
+      const name = LEARN_LANGS[learnLang]?.[lang] || 'English';
+      document.getElementById('appStat').textContent = t('mic.listening').replace('{lang}', name);
       document.getElementById('appStat').style.color = 'var(--red)';
-      window.speechSynthesis.cancel();
     };
+
     let finalTranscript = '';
     r.onresult = (e) => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalTranscript += t; else interim += t;
+        const txt = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalTranscript += txt; else interim += txt;
       }
       document.getElementById('chatInput').value = finalTranscript || interim;
     };
+
     r.onend = () => {
       isListening = false;
-      document.getElementById('micBtn').classList.remove('active');
-      document.getElementById('avFrame').classList.remove('listening');
-      document.getElementById('appStat').textContent = '● Online';
-      document.getElementById('appStat').style.color = 'var(--green)';
+      micBusy = false;
+      micIdleUI();
       if (document.getElementById('chatInput').value.trim()) sendMessage();
     };
+
     r.onerror = (e) => {
       isListening = false;
-      document.getElementById('micBtn').classList.remove('active');
-      document.getElementById('avFrame').classList.remove('listening');
-      document.getElementById('appStat').textContent = '● Online';
-      document.getElementById('appStat').style.color = 'var(--green)';
-      if (e.error === 'not-allowed') showToast('Allow microphone access in your browser to speak.');
+      micBusy = false;
+      micIdleUI();
+      // 'aborted' just means we stopped it ourselves; 'no-speech' means the
+      // user tapped and said nothing. Neither deserves an alarming message.
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        showToast(t('mic.denied'));
+      } else if (e.error === 'no-speech') {
+        showToast(t('mic.nospeech'));
+      } else if (e.error === 'audio-capture') {
+        showToast(t('mic.nodevice'));
+      } else if (e.error !== 'aborted') {
+        showToast(t('mic.retry'));
+      }
     };
+
     return r;
   }
 
-  function toggleMic() {
-    if (!planAllows('voice')) { showToast('Voice conversations are included in Pro.'); showUpgrade(); return; }
-    if (!recognition) recognition = initRecognition();
-    if (!recognition) { showToast('This browser does not support voice input. On iPhone, use Safari.'); return; }
-    if (isListening) { recognition.stop(); return; }
-    recognition = initRecognition();
+  function startListening() {
+    // The tutor's own voice would be picked up by the mic, and on some
+    // browsers it blocks recognition outright. Silence her first.
+    const audioEl = document.getElementById('tutorAudio');
+    if (audioEl && !audioEl.paused) { audioEl.pause(); audioEl.currentTime = 0; }
+    currentAudio = null;
+    window.speechSynthesis.cancel();
+    document.getElementById('avFrame').classList.remove('spk');
+
+    // Rebuild only when the language changed. Recreating on every tap was
+    // what made the button work one time and not the next.
+    if (!recognition || recogLang !== micLang) {
+      recognition = initRecognition();
+      recogLang = micLang;
+    }
+    if (!recognition) { showToast(t('mic.unsupported')); return; }
     recognition.lang = micLang;
-    recognition.start();
+
+    try {
+      micBusy = true;
+      recognition.start();
+    } catch (err) {
+      // Chrome throws if the previous session has not finished closing.
+      micBusy = false;
+      try { recognition.abort(); } catch (e) {}
+      recognition = initRecognition();
+      recogLang = micLang;
+      if (!recognition) return;
+      recognition.lang = micLang;
+      setTimeout(() => {
+        try { micBusy = true; recognition.start(); }
+        catch (e) { micBusy = false; micIdleUI(); showToast(t('mic.retry')); }
+      }, 250);
+    }
+  }
+
+  function toggleMic() {
+    if (!planAllows('voice')) { showToast(t('voice.proOnly')); showUpgrade(); return; }
+    if (micBusy && !isListening) return;          // a tap arrived mid-transition
+    if (isListening) { try { recognition.stop(); } catch (e) { micIdleUI(); } return; }
+    startListening();
   }
 
 /* ------------------------------------------------------------
