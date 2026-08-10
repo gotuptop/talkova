@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Panel — Talkova</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --purple:#534AB7;--purple-light:#7F77DD;
+    --bg:#0D0C1A;--bg2:#13112A;--surface:#211E42;
+    --border:rgba(255,255,255,0.08);
+    --text:#F0EFF8;--text-soft:#9B98BE;--text-muted:#5C5A80;
+    --green:#2ECC8A;--gold:#FFD700;--red:#FF6B6B;
+  }
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.6rem;border-bottom:1px solid var(--border)}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;text-decoration:none;color:var(--text)}
+  .logo span{color:var(--purple-light)}
+  .logo em{font-style:normal;font-size:12px;color:var(--text-muted);margin-left:8px;letter-spacing:.1em;text-transform:uppercase}
+  .btn{font-size:12px;color:var(--text-soft);background:none;border:1px solid var(--border);padding:7px 15px;border-radius:999px;cursor:pointer}
+  .btn:hover{border-color:var(--purple-light);color:var(--text)}
+  main{max-width:1000px;margin:0 auto;padding:2rem 1.2rem 4rem}
+  h1{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-bottom:1.4rem}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:2rem}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1rem 1.1rem}
+  .card .k{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+  .card .v{font-family:'Syne',sans-serif;font-weight:800;font-size:26px}
+  .card.money .v{color:var(--green)}
+
+  .wrap{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:660px}
+  th{text-align:left;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.09em;padding:12px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text-soft)}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .email{color:var(--text);font-weight:500}
+  .pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em}
+  .p-free{background:var(--surface);color:var(--text-muted)}
+  .p-pro{background:rgba(83,74,183,.28);color:var(--purple-light)}
+  .p-premium{background:linear-gradient(135deg,var(--purple),#9B59B6);color:#fff}
+  .dim{color:var(--text-muted)}
+  .msg{padding:2.5rem;text-align:center;color:var(--text-muted);font-size:14px}
+  .msg.err{color:var(--red)}
+  .foot{font-size:11px;color:var(--text-muted);margin-top:1rem;text-align:right}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="/">talk<span>ova</span><em>panel</em></a>
+  <button class="btn" onclick="load()">Actualizar</button>
+</nav>
+
+<main>
+  <h1>Suscripciones</h1>
+  <div class="cards" id="cards"></div>
+  <div class="wrap">
+    <div id="content"><div class="msg">Cargando…</div></div>
+  </div>
+  <p class="foot" id="stamp"></p>
+</main>
+
+<script>
+  const SUPABASE_URL = 'https://gobrwixmtmvcfqyrudih.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_q5EU45ugdQK-qISquQUOPA_9ZKxaFgg';
+  const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const LANG = { en:'Inglés', es:'Español', pt:'Portugués', fr:'Francés', it:'Italiano',
+    de:'Alemán', nl:'Neerlandés', pl:'Polaco', sv:'Sueco', da:'Danés', no:'Noruego',
+    fi:'Finés', cs:'Checo', sk:'Eslovaco', hu:'Húngaro', ro:'Rumano', bg:'Búlgaro',
+    hr:'Croata', el:'Griego', uk:'Ucraniano', ru:'Ruso', tr:'Turco', ar:'Árabe',
+    hi:'Hindi', ta:'Tamil', ja:'Japonés', ko:'Coreano', zh:'Chino', id:'Indonesio',
+    ms:'Malayo', fil:'Filipino', vi:'Vietnamita' };
+
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+
+  const fecha = iso => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return isNaN(d) ? '—' : d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+  };
+
+  function show(html, cls) {
+    document.getElementById('content').innerHTML = `<div class="msg ${cls || ''}">${html}</div>`;
+  }
+
+  async function load() {
+    show('Cargando…');
+    document.getElementById('cards').innerHTML = '';
+
+    const { data: { session } } = await client.auth.getSession();
+    if (!session) {
+      show('Inicia sesión en <a href="/" style="color:var(--purple-light)">talkova.app</a> y vuelve aquí.');
+      return;
+    }
+
+    let res, data;
+    try {
+      res = await fetch('/.netlify/functions/admin-users', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      data = await res.json();
+    } catch (e) {
+      show('No se pudo conectar con el servidor.', 'err');
+      return;
+    }
+
+    if (!res.ok) { show(esc(data.error || 'Error al cargar.'), 'err'); return; }
+    if (!data.rows.length) { show('Todavía no hay usuarios registrados.'); return; }
+
+    const tt = data.totals;
+    document.getElementById('cards').innerHTML = `
+      <div class="card"><div class="k">Usuarios</div><div class="v">${tt.users}</div></div>
+      <div class="card"><div class="k">Gratis</div><div class="v">${tt.free}</div></div>
+      <div class="card"><div class="k">Pro</div><div class="v">${tt.pro}</div></div>
+      <div class="card"><div class="k">Premium</div><div class="v">${tt.premium}</div></div>
+      <div class="card"><div class="k">Activos 30 d</div><div class="v">${tt.activeLast30}</div></div>
+      <div class="card money"><div class="k">Ingreso mensual</div><div class="v">$${tt.mrr}</div></div>`;
+
+    document.getElementById('content').innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Correo</th><th>Nombre</th><th>Plan</th><th>Aprende</th>
+          <th>Nivel</th><th>Convs.</th><th>30 d</th><th>Alta</th>
+        </tr></thead>
+        <tbody>${data.rows.map(r => `
+          <tr>
+            <td class="email">${esc(r.email)}</td>
+            <td>${esc(r.name) || '<span class="dim">—</span>'}</td>
+            <td><span class="pill p-${esc(r.plan)}">${esc(r.plan)}</span></td>
+            <td>${esc(LANG[r.learning] || r.learning)}</td>
+            <td>${esc(r.level) || '<span class="dim">—</span>'}</td>
+            <td>${r.totalConversations}</td>
+            <td>${r.last30 ? r.last30 : '<span class="dim">0</span>'}</td>
+            <td class="dim">${fecha(r.createdAt)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+
+    document.getElementById('stamp').textContent =
+      'Actualizado ' + new Date().toLocaleTimeString('es-MX');
+  }
+
+  load();
+</script>
+
+</body>
+</html>
