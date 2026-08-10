@@ -6,6 +6,7 @@ const ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const FREE_DAILY_MESSAGES = 60;   // safety ceiling; the 5-conversation limit lives in the UI
+const FREE_DAILY_VOICE = 10;     // spoken replies a day on the free plan
 const MAX_TTS_CHARS = 2000;
 const MAX_HISTORY = 30;
 
@@ -93,6 +94,20 @@ async function getProfile(userId) {
   }
 }
 
+// Spoken replies used today. Same row as the message counter.
+async function bumpVoice(userId) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/bump_voice`, {
+      method: 'POST',
+      headers: { apikey: SERVICE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_user: userId })
+    });
+    return (await res.json()) || 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
 // Atomic counter, one row per user per day.
 async function bumpUsage(userId) {
   try {
@@ -133,16 +148,24 @@ exports.handler = async function (event) {
 
   /* ---------- ElevenLabs: speak the reply ---------- */
   if (tts) {
-    // Voice is a paid feature, and night audio is Premium only. Without this
-    // check anyone could burn through the ElevenLabs credits.
-    if (plan === 'free') {
-      return json(402, { error: 'Voice conversations are included in Pro.', upgrade: true });
+    if (typeof tts !== 'string' || tts.length > MAX_TTS_CHARS) {
+      return json(400, { error: 'That text is too long to read aloud.' });
     }
+    // Night audio stays Premium — it is the long one and the reason to upgrade.
     if (mode === 'night' && plan !== 'premium') {
       return json(402, { error: 'Night audio is included in Premium.', upgrade: true });
     }
-    if (typeof tts !== 'string' || tts.length > MAX_TTS_CHARS) {
-      return json(400, { error: 'That text is too long to read aloud.' });
+    // Free hears the tutors too, but with a daily ceiling. Hearing the voice is
+    // what sells the app; billing for it before anyone has heard it does not.
+    if (plan === 'free') {
+      const used = await bumpVoice(user.id);
+      if (used > FREE_DAILY_VOICE) {
+        return json(402, {
+          error: `Free includes ${FREE_DAILY_VOICE} spoken replies a day. Upgrade for unlimited voice.`,
+          upgrade: true,
+          voiceLimit: true
+        });
+      }
     }
 
     const voiceIds = {
