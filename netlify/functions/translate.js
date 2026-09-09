@@ -2,11 +2,13 @@
 //
 // Traductor rápido de Talkova.
 // Usa Claude API para traducir texto de cualquier idioma a cualquier idioma.
-// Respeta el mismo patrón de límites diarios que voice_messages (Free vs Pro/Premium).
+// Sigue el mismo patrón de autenticación que chat.js: el token de Supabase
+// viaja en el header Authorization y aquí se verifica — nunca se confía
+// en un userId que venga en el body.
 
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
+const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
@@ -18,13 +20,26 @@ exports.handler = async (event) => {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  try {
-    const { text, targetLang, sourceLang, userId, voiceOutput } = JSON.parse(event.body);
+  // 1. Verificar el token de sesión (igual que chat.js)
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  const token = authHeader?.replace('Bearer ', '');
 
-    if (!text || !targetLang || !userId) {
+  if (!token) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'No autenticado' }) };
+  }
+
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Sesión inválida o expirada' }) };
+  }
+
+  try {
+    const { text, targetLang, sourceLang, voiceOutput } = JSON.parse(event.body);
+
+    if (!text || !targetLang) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'Faltan campos: text, targetLang o userId' })
+        body: JSON.stringify({ error: 'Faltan campos: text o targetLang' })
       };
     }
 
@@ -35,24 +50,25 @@ exports.handler = async (event) => {
       };
     }
 
-    // 1. Verificar plan y uso diario del usuario
-    const { data: user, error: userError } = await supabase
+    // 2. Verificar plan y uso diario del usuario
+    const { data: userRow, error: userError } = await supabaseAdmin
       .from('users')
       .select('plan')
-      .eq('id', userId)
+      .eq('id', user.id)
       .single();
 
-    if (userError || !user) {
+    if (userError || !userRow) {
       return { statusCode: 404, body: JSON.stringify({ error: 'Usuario no encontrado' }) };
     }
 
+    const plan = (userRow.plan || 'free').toLowerCase();
     const today = new Date().toISOString().split('T')[0];
 
-    if (user.plan === 'free') {
-      const { data: usage } = await supabase
+    if (plan === 'free') {
+      const { data: usage } = await supabaseAdmin
         .from('daily_usage')
         .select('translation_count')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .eq('date', today)
         .single();
 
@@ -60,16 +76,16 @@ exports.handler = async (event) => {
 
       if (currentCount >= FREE_DAILY_LIMIT) {
         return {
-          statusCode: 403,
+          statusCode: 402,
           body: JSON.stringify({
-            error: 'limit_reached',
-            message: `Alcanzaste el límite de ${FREE_DAILY_LIMIT} traducciones gratis de hoy. Actualiza a Pro para traducciones ilimitadas.`
+            error: `Alcanzaste el límite de ${FREE_DAILY_LIMIT} traducciones gratis de hoy. Con Pro son ilimitadas.`,
+            upgrade: true
           })
         };
       }
     }
 
-    // 2. Llamar a Claude para traducir
+    // 3. Llamar a Claude para traducir
     const sourceInstruction = sourceLang
       ? `del idioma ${sourceLang}`
       : 'detectando automáticamente el idioma de origen';
@@ -115,7 +131,7 @@ Texto a traducir: "${text}"`;
       return { statusCode: 502, body: JSON.stringify({ error: 'Respuesta inválida del traductor' }) };
     }
 
-    // 3. Generar audio opcional con ElevenLabs (si el idioma destino tiene voz configurada)
+    // 4. Generar audio opcional con ElevenLabs (voces Maya/Leo ya configuradas)
     let audioBase64 = null;
     if (voiceOutput) {
       const voiceId = getVoiceIdForLanguage(targetLang);
@@ -146,9 +162,9 @@ Texto a traducir: "${text}"`;
       }
     }
 
-    // 4. Actualizar contador de uso diario (solo plan Free)
-    if (user.plan === 'free') {
-      await supabase.rpc('bump_translation_usage', { p_user_id: userId });
+    // 5. Actualizar contador de uso diario (solo plan Free)
+    if (plan === 'free') {
+      await supabaseAdmin.rpc('bump_translation_usage', { p_user_id: user.id });
     }
 
     return {
@@ -165,8 +181,8 @@ Texto a traducir: "${text}"`;
   }
 };
 
-// Mapea idioma destino a un voice ID de ElevenLabs (usa las voces que ya tienes configuradas
-// para inglés/español y deja las demás en null hasta que agregues más voces).
+// Mapea idioma destino a un voice ID de ElevenLabs (usa las voces que ya tienes
+// configuradas para inglés/español; agrega más entradas si sumas más voces).
 function getVoiceIdForLanguage(lang) {
   const map = {
     english: process.env.ELEVENLABS_VOICE_LEO,
