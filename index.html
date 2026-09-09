@@ -246,6 +246,21 @@
   .locked-title{font-size:13px;font-weight:600;margin-bottom:6px}
   .locked-text{font-size:12px;color:var(--text-soft);line-height:1.5;margin-bottom:12px}
   .locked-btn{width:100%;padding:10px;font-size:13px;font-weight:600;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--purple),#9B59B6);color:white}
+
+  .translate-btn{width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;flex-shrink:0}
+  .translate-btn:hover{border-color:var(--purple-light)}
+  .translate-nav-btn{font-size:13px;color:var(--text-soft);background:none;border:1px solid var(--border);padding:6px 10px;border-radius:999px;cursor:pointer;transition:all .2s}
+  .translate-nav-btn:hover{border-color:var(--purple-light);color:var(--text)}
+  .tr-row{display:flex;align-items:center;gap:8px;margin:12px 0}
+  .tr-arrow{font-weight:bold;color:var(--text-muted)}
+  .tr-input{width:100%;min-height:90px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;outline:none}
+  .tr-input:focus{border-color:var(--purple)}
+  .tr-result{margin-top:14px;padding:12px 14px;background:var(--surface);border-radius:10px}
+  .tr-detected{font-size:11px;color:var(--text-muted);margin-bottom:6px}
+  .tr-output{font-size:15px;color:var(--text);line-height:1.5}
+  .tr-error{color:var(--red);font-size:12px;margin-top:10px}
+  .tr-voice-row{display:flex;align-items:center;justify-content:space-between;margin:12px 0}
+  .tr-voice-label{font-size:12px;color:var(--text-soft);display:flex;align-items:center;gap:6px}
 </style>
 </head>
 <body>
@@ -263,6 +278,7 @@
     <button class="btn-p" data-i18n="nav.start" onclick="showApp()">Start learning</button>
   </div>
   <div class="user-info" id="navUser" style="display:none">
+    <button class="translate-nav-btn" data-i18n="nav.translate" onclick="openTranslator()">🌐 Translator</button>
     <div class="user-avatar" id="navUserAvatar">U</div>
     <button class="logout-btn" data-i18n="nav.signout" onclick="handleLogout()">Sign out</button>
   </div>
@@ -389,6 +405,7 @@
       <div><div class="aname"><span id="appName">Maya</span> <span class="tutor-lang" id="appLang"></span></div><div class="astat" id="appStat">● Online</div></div>
     </div>
     <button class="spk-toggle on" id="spkToggle" onclick="toggleSpeaker()" title="Tutor voice">🔊</button>
+    <button class="translate-btn" onclick="openTranslator()" title="Translator">🌐</button>
     <button style="background:none;border:1px solid var(--border);border-radius:999px;color:var(--text-soft);font-size:11px;padding:4px 10px;cursor:pointer" onclick="endSession()" title="End session and get your lesson">End</button>
     <button class="plan-pill plan-free" id="planPill" onclick="showUpgrade()">Free</button>
   </div>
@@ -434,6 +451,39 @@
     <div id="lessonContent">
       <div class="loading-lesson">⏳ Generating your lesson summary...</div>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="translatorModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" data-i18n="tr.title">🌐 Translator</div>
+      <button class="modal-close" onclick="closeTranslator()" aria-label="Close">✕</button>
+    </div>
+
+    <div class="tr-row">
+      <select class="learn-select small" id="trSourceLang" style="flex:1"></select>
+      <span class="tr-arrow">→</span>
+      <select class="learn-select small" id="trTargetLang" style="flex:1"></select>
+    </div>
+
+    <textarea class="tr-input" id="trInput" maxlength="2000" data-i18n-ph="tr.placeholder" placeholder="Type the text to translate..."></textarea>
+
+    <div class="tr-voice-row">
+      <label class="tr-voice-label">
+        <input type="checkbox" id="trVoiceToggle"/>
+        <span data-i18n="tr.listen">Listen to translation</span>
+      </label>
+      <button class="btn-p" id="trSubmitBtn" data-i18n="tr.submit" onclick="runTranslation()">Translate</button>
+    </div>
+
+    <div id="trResult" class="tr-result" style="display:none">
+      <p class="tr-detected" id="trDetected"></p>
+      <p class="tr-output" id="trOutput"></p>
+      <audio id="trAudio" controls style="display:none;width:100%;margin-top:10px"></audio>
+    </div>
+
+    <p class="tr-error" id="trError" style="display:none"></p>
   </div>
 </div>
 
@@ -528,7 +578,18 @@
       'mic.retry':'El micrófono se cortó. Toca 🎤 otra vez.',
       'mic.unsupported':'Este navegador no admite dictado. En iPhone usa Safari.',
       'voice.blocked':'Toca la pantalla para activar el audio. Si tu iPhone está en silencio, sube el interruptor lateral.',
-      'chat.greet':'¡Hola! Soy {name} 👋 Soy tu tutor de {lang} en Talkova. Puedes escribir o tocar el 🎤 para hablar — lo que te resulte más cómodo. ¿Qué te gustaría practicar hoy?'
+      'chat.greet':'¡Hola! Soy {name} 👋 Soy tu tutor de {lang} en Talkova. Puedes escribir o tocar el 🎤 para hablar — lo que te resulte más cómodo. ¿Qué te gustaría practicar hoy?',
+      'nav.translate':'🌐 Traductor',
+      'tr.title':'🌐 Traductor',
+      'tr.placeholder':'Escribe el texto a traducir...',
+      'tr.listen':'Escuchar traducción',
+      'tr.submit':'Traducir',
+      'tr.auto':'Detectar automáticamente',
+      'tr.submitting':'Traduciendo...',
+      'tr.empty':'Escribe algo para traducir.',
+      'tr.signinNeeded':'Inicia sesión para usar el traductor.',
+      'tr.detected':'Detectado: {lang}',
+      'tr.connError':'Error de conexión. Intenta de nuevo.'
     },
     en: {
       'nav.try':'Try free', 'nav.start':'Start learning', 'nav.signout':'Sign out',
@@ -583,7 +644,18 @@
       'mic.retry':'The mic dropped out. Tap 🎤 again.',
       'mic.unsupported':'This browser does not support dictation. On iPhone, use Safari.',
       'voice.blocked':'Tap the screen to enable audio. If your iPhone is on silent, flip the side switch.',
-      'chat.greet':"Hi! I'm {name} 👋 I'm your {lang} tutor at Talkova. You can type or tap the 🎤 to speak — whatever feels comfortable. What would you like to practice today?"
+      'chat.greet':"Hi! I'm {name} 👋 I'm your {lang} tutor at Talkova. You can type or tap the 🎤 to speak — whatever feels comfortable. What would you like to practice today?",
+      'nav.translate':'🌐 Translator',
+      'tr.title':'🌐 Translator',
+      'tr.placeholder':'Type the text to translate...',
+      'tr.listen':'Listen to translation',
+      'tr.submit':'Translate',
+      'tr.auto':'Auto-detect',
+      'tr.submitting':'Translating...',
+      'tr.empty':'Type something to translate.',
+      'tr.signinNeeded':'Sign in to use the translator.',
+      'tr.detected':'Detected: {lang}',
+      'tr.connError':'Connection error. Try again.'
     }
   };
 
@@ -628,6 +700,9 @@
     renderLangPicker();
     refreshLangLabels();
     renderTutor();
+    if (document.getElementById('translatorModal')?.classList.contains('show')) {
+      renderTranslatorPickers();
+    }
   }
 
   // Switching the interface language also updates which language the tutor
@@ -728,6 +803,99 @@
       const sel = document.getElementById(id);
       if (sel) sel.innerHTML = html;
     });
+  }
+
+  /* ------------------------------------------------------------
+     Translator — separate from the tutor's learning language pair.
+     Reuses LEARN_LANGS so the same 32 languages are available.
+     ------------------------------------------------------------ */
+
+  function renderTranslatorPickers() {
+    const src = document.getElementById('trSourceLang');
+    const tgt = document.getElementById('trTargetLang');
+    if (!src || !tgt) return;
+    const opts = Object.keys(LEARN_LANGS).map(c =>
+      `<option value="${c}">${learnLabel(c)}</option>`).join('');
+    src.innerHTML = `<option value="">${t('tr.auto')}</option>${opts}`;
+    tgt.innerHTML = opts;
+    // Default target: whatever the user isn't currently learning in, so the
+    // picker is rarely left on a same-language no-op translation.
+    tgt.value = (learnLang !== nativeLang) ? nativeLang : learnLang;
+  }
+
+  function openTranslator() {
+    if (!currentUser) {
+      showToast(t('tr.signinNeeded'));
+      document.getElementById('authScreen').style.display = 'flex';
+      return;
+    }
+    renderTranslatorPickers();
+    document.getElementById('translatorModal').classList.add('show');
+  }
+
+  function closeTranslator() {
+    document.getElementById('translatorModal').classList.remove('show');
+    document.getElementById('trResult').style.display = 'none';
+    document.getElementById('trError').style.display = 'none';
+  }
+
+  async function runTranslation() {
+    const text = document.getElementById('trInput').value.trim();
+    const sourceLang = document.getElementById('trSourceLang').value;
+    const targetLang = document.getElementById('trTargetLang').value;
+    const voiceOutput = document.getElementById('trVoiceToggle').checked;
+    const submitBtn = document.getElementById('trSubmitBtn');
+    const errorEl = document.getElementById('trError');
+    const resultEl = document.getElementById('trResult');
+
+    errorEl.style.display = 'none';
+    resultEl.style.display = 'none';
+
+    if (!text) { errorEl.textContent = t('tr.empty'); errorEl.style.display = 'block'; return; }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = t('tr.submitting');
+
+    try {
+      const res = await fetch('/.netlify/functions/translate', {
+        method: 'POST',
+        headers: await authHeaders(),
+        body: JSON.stringify({
+          text,
+          sourceLang: sourceLang ? (LEARN_LANGS[sourceLang]?.en || sourceLang) : '',
+          targetLang: LEARN_LANGS[targetLang]?.en || targetLang,
+          voiceOutput
+        })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (!handleApiError(res.status, data)) {
+          errorEl.textContent = data.error || t('tr.connError');
+          errorEl.style.display = 'block';
+        }
+        return;
+      }
+
+      document.getElementById('trDetected').textContent =
+        t('tr.detected').replace('{lang}', data.detectedLanguage || '');
+      document.getElementById('trOutput').textContent = data.translation;
+      resultEl.style.display = 'block';
+
+      const audioEl = document.getElementById('trAudio');
+      if (data.audioBase64) {
+        audioEl.src = `data:audio/mpeg;base64,${data.audioBase64}`;
+        audioEl.style.display = 'block';
+      } else {
+        audioEl.style.display = 'none';
+      }
+    } catch (e) {
+      errorEl.textContent = t('tr.connError');
+      errorEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = t('tr.submit');
+    }
   }
 
   // The pair is saved on the user's row, so every request picks it up.
