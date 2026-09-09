@@ -1,102 +1,115 @@
 // netlify/functions/translate.js
-//
-// Traductor rápido de Talkova.
-// Usa Claude API para traducir texto de cualquier idioma a cualquier idioma.
-// Sigue el mismo patrón de autenticación que chat.js: el token de Supabase
-// viaja en el header Authorization y aquí se verifica — nunca se confía
-// en un userId que venga en el body.
+// Traductor rápido de Talkova. Mismo patrón que chat.js: llamadas directas
+// a la API REST de Supabase con fetch, sin el paquete @supabase/supabase-js.
 
-const { createClient } = require('@supabase/supabase-js');
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+const ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+const FREE_DAILY_TRANSLATIONS = 10;
+const MAX_TEXT_CHARS = 2000;
 
-const FREE_DAILY_LIMIT = 10; // traducciones gratis por día en plan Free
+const json = (statusCode, payload) => ({
+  statusCode,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+});
 
-exports.handler = async (event) => {
+async function getUser(event) {
+  const header = event.headers.authorization || event.headers.Authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token || !SUPABASE_URL) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      console.error('Auth check rejected:', res.status, await res.text());
+      return null;
+    }
+    const user = await res.json();
+    return user && user.id ? user : null;
+  } catch (e) {
+    console.error('Token check failed:', e);
+    return null;
+  }
+}
+
+async function getPlan(userId) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=plan`,
+      { headers: { apikey: SERVICE_KEY } }
+    );
+    const row = (await res.json())[0] || {};
+    return (row.plan || 'free').toLowerCase();
+  } catch (e) {
+    return 'free';
+  }
+}
+
+// Atomic counter, one row per user per day — misma forma que bump_voice y bump_usage.
+async function bumpTranslations(userId) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/bump_translation_usage`, {
+      method: 'POST',
+      headers: { apikey: SERVICE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_user: userId })
+    });
+    return (await res.json()) || 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  // 1. Verificar el token de sesión (igual que chat.js)
-  const authHeader = event.headers.authorization || event.headers.Authorization;
-  const token = authHeader?.replace('Bearer ', '');
+  const user = await getUser(event);
+  if (!user) return json(401, { error: 'Inicia sesión para traducir.' });
 
-  if (!token) {
-    return { statusCode: 401, body: JSON.stringify({ error: 'No autenticado' }) };
-  }
-
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) {
-    return { statusCode: 401, body: JSON.stringify({ error: 'Sesión inválida o expirada' }) };
-  }
-
+  let body;
   try {
-    const { text, targetLang, sourceLang, voiceOutput } = JSON.parse(event.body);
+    body = JSON.parse(event.body);
+  } catch (e) {
+    return json(400, { error: 'Solicitud mal formada.' });
+  }
 
-    if (!text || !targetLang) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Faltan campos: text o targetLang' })
-      };
+  const { text, targetLang, sourceLang, voiceOutput } = body;
+
+  if (!text || !targetLang) {
+    return json(400, { error: 'Faltan campos: text o targetLang' });
+  }
+  if (typeof text !== 'string' || text.length > MAX_TEXT_CHARS) {
+    return json(400, { error: 'Texto demasiado largo (máximo 2000 caracteres)' });
+  }
+
+  const plan = await getPlan(user.id);
+
+  if (plan === 'free') {
+    const used = await bumpTranslations(user.id);
+    if (used > FREE_DAILY_TRANSLATIONS) {
+      return json(402, {
+        error: `Alcanzaste el límite de ${FREE_DAILY_TRANSLATIONS} traducciones gratis de hoy. Con Pro son ilimitadas.`,
+        upgrade: true
+      });
     }
+  }
 
-    if (text.length > 2000) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Texto demasiado largo (máximo 2000 caracteres)' })
-      };
-    }
+  const sourceInstruction = sourceLang
+    ? `del idioma ${sourceLang}`
+    : 'detectando automáticamente el idioma de origen';
 
-    // 2. Verificar plan y uso diario del usuario
-    const { data: userRow, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('plan')
-      .eq('id', user.id)
-      .single();
-
-    if (userError || !userRow) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'Usuario no encontrado' }) };
-    }
-
-    const plan = (userRow.plan || 'free').toLowerCase();
-    const today = new Date().toISOString().split('T')[0];
-
-    if (plan === 'free') {
-      const { data: usage } = await supabaseAdmin
-        .from('daily_usage')
-        .select('translation_count')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .single();
-
-      const currentCount = usage?.translation_count || 0;
-
-      if (currentCount >= FREE_DAILY_LIMIT) {
-        return {
-          statusCode: 402,
-          body: JSON.stringify({
-            error: `Alcanzaste el límite de ${FREE_DAILY_LIMIT} traducciones gratis de hoy. Con Pro son ilimitadas.`,
-            upgrade: true
-          })
-        };
-      }
-    }
-
-    // 3. Llamar a Claude para traducir
-    const sourceInstruction = sourceLang
-      ? `del idioma ${sourceLang}`
-      : 'detectando automáticamente el idioma de origen';
-
-    const prompt = `Traduce el siguiente texto ${sourceInstruction} al idioma ${targetLang}.
+  const prompt = `Traduce el siguiente texto ${sourceInstruction} al idioma ${targetLang}.
 Responde ÚNICAMENTE en formato JSON, sin texto adicional, sin backticks de markdown, con esta estructura exacta:
 {"detectedLanguage": "idioma detectado en el texto original", "translation": "traducción del texto"}
 
 Texto a traducir: "${text}"`;
 
-    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -110,14 +123,13 @@ Texto a traducir: "${text}"`;
       })
     });
 
-    if (!claudeResponse.ok) {
-      const errText = await claudeResponse.text();
-      console.error('Error de Claude API:', errText);
-      return { statusCode: 502, body: JSON.stringify({ error: 'Error al traducir' }) };
+    const data = await response.json();
+    if (!response.ok || !data.content) {
+      console.error('Anthropic error:', data);
+      return json(502, { error: 'El traductor no respondió. Intenta de nuevo.' });
     }
 
-    const claudeData = await claudeResponse.json();
-    const rawText = claudeData.content
+    const rawText = data.content
       .filter((block) => block.type === 'text')
       .map((block) => block.text)
       .join('');
@@ -128,13 +140,17 @@ Texto a traducir: "${text}"`;
       parsed = JSON.parse(cleaned);
     } catch (e) {
       console.error('No se pudo parsear la respuesta de Claude:', rawText);
-      return { statusCode: 502, body: JSON.stringify({ error: 'Respuesta inválida del traductor' }) };
+      return json(502, { error: 'Respuesta inválida del traductor.' });
     }
 
-    // 4. Generar audio opcional con ElevenLabs (voces Maya/Leo ya configuradas)
+    // Audio opcional con ElevenLabs (voces Maya/Leo ya configuradas)
     let audioBase64 = null;
     if (voiceOutput) {
-      const voiceId = getVoiceIdForLanguage(targetLang);
+      const voiceIds = {
+        english: process.env.ELEVENLABS_VOICE_LEO,
+        spanish: process.env.ELEVENLABS_VOICE_MAYA
+      };
+      const voiceId = voiceIds[String(targetLang).toLowerCase()];
       if (voiceId) {
         try {
           const ttsResponse = await fetch(
@@ -142,8 +158,8 @@ Texto a traducir: "${text}"`;
             {
               method: 'POST',
               headers: {
-                'Content-Type': 'application/json',
-                'xi-api-key': process.env.ELEVENLABS_API_KEY
+                'xi-api-key': process.env.ELEVENLABS_API_KEY,
+                'Content-Type': 'application/json'
               },
               body: JSON.stringify({
                 text: parsed.translation,
@@ -154,39 +170,23 @@ Texto a traducir: "${text}"`;
           if (ttsResponse.ok) {
             const audioBuffer = await ttsResponse.arrayBuffer();
             audioBase64 = Buffer.from(audioBuffer).toString('base64');
+          } else {
+            console.error('ElevenLabs error:', ttsResponse.status, await ttsResponse.text());
           }
         } catch (e) {
-          console.error('Error generando audio:', e);
+          console.error('TTS error:', e);
           // seguimos sin audio, no bloqueamos la traducción
         }
       }
     }
 
-    // 5. Actualizar contador de uso diario (solo plan Free)
-    if (plan === 'free') {
-      await supabaseAdmin.rpc('bump_translation_usage', { p_user_id: user.id });
-    }
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        detectedLanguage: parsed.detectedLanguage,
-        translation: parsed.translation,
-        audioBase64
-      })
-    };
-  } catch (err) {
-    console.error('Error en translate.js:', err);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Error interno del servidor' }) };
+    return json(200, {
+      detectedLanguage: parsed.detectedLanguage,
+      translation: parsed.translation,
+      audioBase64
+    });
+  } catch (error) {
+    console.error('translate error:', error);
+    return json(500, { error: 'El traductor no respondió. Intenta de nuevo.' });
   }
 };
-
-// Mapea idioma destino a un voice ID de ElevenLabs (usa las voces que ya tienes
-// configuradas para inglés/español; agrega más entradas si sumas más voces).
-function getVoiceIdForLanguage(lang) {
-  const map = {
-    english: process.env.ELEVENLABS_VOICE_LEO,
-    spanish: process.env.ELEVENLABS_VOICE_MAYA
-  };
-  return map[lang.toLowerCase()] || null;
-}
