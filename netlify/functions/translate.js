@@ -77,7 +77,7 @@ exports.handler = async function (event) {
     return json(400, { error: 'Solicitud mal formada.' });
   }
 
-  const { text, targetLang, sourceLang, voiceOutput } = body;
+  const { text, targetLang, sourceLang, voiceOutput, internal } = body;
 
   if (!text || !targetLang) {
     return json(400, { error: 'Faltan campos: text o targetLang' });
@@ -88,7 +88,9 @@ exports.handler = async function (event) {
 
   const plan = await getPlan(user.id);
 
-  if (plan === 'free') {
+  // "internal" is for app UI text we translate on the user's behalf (like the
+  // sleep-science summary) — it shouldn't eat into their own daily quota.
+  if (plan === 'free' && !internal) {
     const used = await bumpTranslations(user.id);
     if (used > FREE_DAILY_TRANSLATIONS) {
       return json(402, {
