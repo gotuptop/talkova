@@ -249,8 +249,6 @@
 
   .translate-btn{width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;flex-shrink:0}
   .translate-btn:hover{border-color:var(--purple-light)}
-  .translate-nav-btn{font-size:13px;color:var(--text-soft);background:none;border:1px solid var(--border);padding:6px 10px;border-radius:999px;cursor:pointer;transition:all .2s}
-  .translate-nav-btn:hover{border-color:var(--purple-light);color:var(--text)}
   .tr-row{display:flex;align-items:center;gap:8px;margin:12px 0}
   .tr-arrow{font-weight:bold;color:var(--text-muted)}
   .tr-input{width:100%;min-height:90px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;outline:none}
@@ -278,7 +276,6 @@
     <button class="btn-p" data-i18n="nav.start" onclick="showApp()">Start learning</button>
   </div>
   <div class="user-info" id="navUser" style="display:none">
-    <button class="translate-nav-btn" data-i18n="nav.translate" onclick="openTranslator()">🌐 Translator</button>
     <div class="user-avatar" id="navUserAvatar">U</div>
     <button class="logout-btn" data-i18n="nav.signout" onclick="handleLogout()">Sign out</button>
   </div>
@@ -581,7 +578,6 @@
       'mic.unsupported':'Este navegador no admite dictado. En iPhone usa Safari.',
       'voice.blocked':'Toca la pantalla para activar el audio. Si tu iPhone está en silencio, sube el interruptor lateral.',
       'chat.greet':'¡Hola! Soy {name} 👋 Soy tu tutor de {lang} en Talkova. Puedes escribir o tocar el 🎤 para hablar — lo que te resulte más cómodo. ¿Qué te gustaría practicar hoy?',
-      'nav.translate':'🌐 Traductor',
       'tr.title':'🌐 Traductor',
       'tr.placeholder':'Escribe el texto a traducir...',
       'tr.listen':'Escuchar traducción',
@@ -649,7 +645,6 @@
       'mic.unsupported':'This browser does not support dictation. On iPhone, use Safari.',
       'voice.blocked':'Tap the screen to enable audio. If your iPhone is on silent, flip the side switch.',
       'chat.greet':"Hi! I'm {name} 👋 I'm your {lang} tutor at Talkova. You can type or tap the 🎤 to speak — whatever feels comfortable. What would you like to practice today?",
-      'nav.translate':'🌐 Translator',
       'tr.title':'🌐 Translator',
       'tr.placeholder':'Type the text to translate...',
       'tr.listen':'Listen to translation',
