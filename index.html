@@ -325,7 +325,7 @@
         <div class="dm u"><div class="dav" style="background:var(--purple);color:white">U</div><div class="db usr" id="demoUser">I want order a coffee please.</div></div>
         <div class="dm"><div class="dav" id="demoAv2"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/></div><div class="db ai" id="demoFix">Almost perfect! <span class="tag tw">I want order</span>→<span class="tag tr">I'd like to order ✓</span> We add "to" after "want." Try again!</div></div>
       </div>
-      <button class="bstart" data-i18n="demo.start" onclick="showApp()">Start your free session →</button>
+      <button class="bstart" id="demoStartBtn" data-i18n="demo.start" onclick="showApp()">Start your free session →</button>
     </div>
   </section>
 
@@ -580,6 +580,8 @@
       'demo.user':'I want order a coffee please.',
       'demo.fix':'¡Casi perfecto! <span class="tag tw">I want order</span>→<span class="tag tr">I\'d like to order ✓</span> Después de "want" va "to". ¡Inténtalo otra vez!',
       'demo.start':'Empieza tu sesión gratis →',
+      'demo.startPro':'Disfruta tu plan Pro →',
+      'demo.startPremium':'Disfruta todos tus privilegios Premium →',
       'feat.1t':'Conversaciones de verdad','feat.1d':'Practica situaciones del día a día con alguien que nunca se impacienta.',
       'feat.2t':'Correcciones al instante','feat.2d':'Aprende de tus errores sin pasar pena.',
       'feat.3t':'Hecho para latinos','feat.3d':'Cámbiate al español cuando lo necesites.',
@@ -661,6 +663,8 @@
       'demo.user':'I want order a coffee please.',
       'demo.fix':'Almost perfect! <span class="tag tw">I want order</span>→<span class="tag tr">I\'d like to order ✓</span> We add "to" after "want." Try again!',
       'demo.start':'Start your free session →',
+      'demo.startPro':'Enjoy your Pro plan →',
+      'demo.startPremium':'Enjoy all your Premium perks →',
       'feat.1t':'Real conversations','feat.1d':'Practice everyday situations with a patient AI partner.',
       'feat.2t':'Instant corrections','feat.2d':'Learn from mistakes without embarrassment.',
       'feat.3t':'Built for Latinos','feat.3d':'Switch to Spanish whenever you need to.',
@@ -1088,6 +1092,13 @@
   function refreshPricingUI() {
     const heroWaitlist = document.getElementById('heroWaitlist');
     if (heroWaitlist) heroWaitlist.style.display = currentUser ? 'none' : '';
+
+    const demoBtn = document.getElementById('demoStartBtn');
+    if (demoBtn) {
+      if (currentUser && userPlan === 'premium') demoBtn.textContent = t('demo.startPremium');
+      else if (currentUser && userPlan === 'pro') demoBtn.textContent = t('demo.startPro');
+      else demoBtn.textContent = t('demo.start');
+    }
 
     const defaultView = document.getElementById('pricingDefault');
     const thankYouView = document.getElementById('pricingThankYou');
