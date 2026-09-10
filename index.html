@@ -1103,6 +1103,7 @@
         renderLangPicker();
         renderNativePicker();
         refreshLangLabels();
+        if (data.level) {
           const badge = document.getElementById('levelBadge');
           if (badge) { badge.textContent = data.level; badge.className = 'badge level-badge level-' + data.level.toLowerCase(); }
         }
