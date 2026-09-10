@@ -199,6 +199,7 @@
   .plan-btn.pro:hover{background:var(--purple-light)}
   .plan-btn.premium{background:linear-gradient(135deg,var(--purple),#9B59B6);color:white}
   .plan-btn.premium:hover{opacity:0.9}
+  .plan-status{font-size:13px;color:var(--text-soft);line-height:1.5;text-align:center;padding:12px 4px;margin-bottom:1.5rem;background:var(--surface);border-radius:10px}
   .plan-features{list-style:none;display:flex;flex-direction:column;gap:10px}
   .plan-features li{font-size:13px;color:var(--text-soft);display:flex;align-items:center;gap:8px}
   .plan-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
@@ -287,11 +288,13 @@
     <div class="eyebrow"><div class="pulse"></div><span data-i18n="hero.eyebrow">AI-powered · Available 24/7</span></div>
     <h1 data-i18n-html="hero.h1">Speak English<br>with <em>real confidence</em></h1>
     <p class="hsub" data-i18n="hero.sub">Practice natural conversations with an AI tutor that corrects you gently, explains why, and adapts to your level — in Spanish or English.</p>
-    <div class="wlf">
-      <input class="wli" type="email" id="emailInput" data-i18n-ph="hero.email" placeholder="your@email.com"/>
-      <button class="btn-cta" data-i18n="hero.cta" onclick="joinWaitlist()">Get early access</button>
+    <div id="heroWaitlist">
+      <div class="wlf">
+        <input class="wli" type="email" id="emailInput" data-i18n-ph="hero.email" placeholder="your@email.com"/>
+        <button class="btn-cta" data-i18n="hero.cta" onclick="joinWaitlist()">Get early access</button>
+      </div>
+      <p class="hint" data-i18n="hero.hint">Free to start — no credit card needed</p>
     </div>
-    <p class="hint" data-i18n="hero.hint">Free to start — no credit card needed</p>
   </section>
 
   <section class="ts">
@@ -342,7 +345,9 @@
         <div class="plan-name" data-i18n="pr.free">Free</div>
         <div class="plan-price">$0<span>/mo</span></div>
         <p class="plan-desc" data-i18n="pr.freeDesc">Perfect to try Talkova and see if it's right for you.</p>
-        <button class="plan-btn free" data-i18n="pr.freeBtn" onclick="showApp()">Start for free →</button>
+        <button class="plan-btn free" id="freePlanBtn" data-i18n="pr.freeBtn" onclick="showApp()">Start for free →</button>
+        <p class="plan-status" id="freePlanStatusOwn" style="display:none" data-i18n="pr.freeStatusOwn">You're on Free — Pro and Premium have a lot more to offer 💜</p>
+        <p class="plan-status" id="freePlanStatusIncluded" style="display:none" data-i18n="pr.statusIncluded">Included in your plan ✓</p>
         <ul class="plan-features">
           <li data-i18n="f.5conv">5 conversations per day</li>
           <li data-i18n="f.tutors">All 3 AI tutors</li>
@@ -359,7 +364,9 @@
         <div class="plan-name">Pro</div>
         <div class="plan-price">$9.99<span>/mo</span></div>
         <p class="plan-desc" data-i18n="pr.proDesc">Unlimited practice with voice, corrections and progress tracking.</p>
-        <button class="plan-btn pro" data-i18n="pr.proBtn" onclick="handleCheckout('pro')">Get Pro →</button>
+        <button class="plan-btn pro" id="proPlanBtn" data-i18n="pr.proBtn" onclick="handleCheckout('pro')">Get Pro →</button>
+        <p class="plan-status" id="proPlanStatusOwn" style="display:none" data-i18n="pr.proStatusOwn">Thanks for being Pro — go Premium for even more ✨</p>
+        <p class="plan-status" id="proPlanStatusIncluded" style="display:none" data-i18n="pr.statusIncluded">Included in your plan ✓</p>
         <ul class="plan-features">
           <li data-i18n="f.unlim">Unlimited conversations</li>
           <li data-i18n="f.tutors">All 3 AI tutors</li>
@@ -375,7 +382,8 @@
         <div class="plan-name">Premium</div>
         <div class="plan-price">$19.99<span>/mo</span></div>
         <p class="plan-desc" data-i18n="pr.premDesc">Full immersion with subconscious learning while you sleep.</p>
-        <button class="plan-btn premium" data-i18n="pr.premBtn" onclick="handleCheckout('premium')">Get Premium →</button>
+        <button class="plan-btn premium" id="premiumPlanBtn" data-i18n="pr.premBtn" onclick="handleCheckout('premium')">Get Premium →</button>
+        <p class="plan-status" id="premiumPlanStatusOwn" style="display:none" data-i18n="pr.premStatusOwn">Thanks for subscribing — we'll let you know about new features soon, free for you 🎉</p>
         <ul class="plan-features">
           <li data-i18n="f.allpro">Everything in Pro</li>
           <li data-i18n="f.night25">Night audio at 25% volume</li>
@@ -601,7 +609,11 @@
       'native.label':'Ya hablo',
       'native.changed':'Tu tutor ahora te explica en {lang} 🎉',
       'native.sameWarning':'Elige un idioma distinto al que quieres aprender',
-      'native.autoSwitch':'Como también elegiste ese idioma para aprender, tu idioma base ahora es {lang}. Puedes cambiarlo arriba.'
+      'native.autoSwitch':'Como también elegiste ese idioma para aprender, tu idioma base ahora es {lang}. Puedes cambiarlo arriba.',
+      'pr.freeStatusOwn':'¡Gracias por estar aquí! Tu Pro y tu Premium te ofrecen mucho más 💜',
+      'pr.proStatusOwn':'Gracias por tu suscripción Pro. Pásate a Premium para tener más beneficios ✨',
+      'pr.premStatusOwn':'Gracias por tu suscripción. Te avisaremos de nuevas funciones pronto — son gratis para ti 🎉',
+      'pr.statusIncluded':'Incluido en tu plan ✓'
     },
     en: {
       'nav.try':'Try free', 'nav.start':'Start learning', 'nav.signout':'Sign out',
@@ -672,7 +684,11 @@
       'native.label':'I already speak',
       'native.changed':'Your tutor now explains in {lang} 🎉',
       'native.sameWarning':'Choose a different language than the one you want to learn',
-      'native.autoSwitch':'Since you also picked that language to learn, your native language is now {lang}. Change it above if you like.'
+      'native.autoSwitch':'Since you also picked that language to learn, your native language is now {lang}. Change it above if you like.',
+      'pr.freeStatusOwn':"You're on Free — Pro and Premium have a lot more to offer 💜",
+      'pr.proStatusOwn':'Thanks for being Pro. Go Premium for even more benefits ✨',
+      'pr.premStatusOwn':"Thanks for subscribing. We'll let you know about new features soon — free for you 🎉",
+      'pr.statusIncluded':'Included in your plan ✓'
     }
   };
 
@@ -1026,6 +1042,51 @@
     const spk = document.getElementById('spkToggle');
     if (spk) spk.classList.remove('locked');
     setMicLang('target');
+    refreshPricingUI();
+  }
+
+  // Once someone is signed in, the sign-up prompts and the button on the
+  // plan they already have stop making sense — swap them for status text.
+  function refreshPricingUI() {
+    const heroWaitlist = document.getElementById('heroWaitlist');
+    if (heroWaitlist) heroWaitlist.style.display = currentUser ? 'none' : '';
+
+    const cards = {
+      free:    { btn: 'freePlanBtn',    own: 'freePlanStatusOwn',    included: 'freePlanStatusIncluded' },
+      pro:     { btn: 'proPlanBtn',     own: 'proPlanStatusOwn',     included: 'proPlanStatusIncluded' },
+      premium: { btn: 'premiumPlanBtn', own: 'premiumPlanStatusOwn', included: null }
+    };
+    const rank = { free: 0, pro: 1, premium: 2 };
+    const myRank = rank[userPlan] ?? 0;
+
+    Object.entries(cards).forEach(([planKey, ids]) => {
+      const btn = document.getElementById(ids.btn);
+      const own = ids.own ? document.getElementById(ids.own) : null;
+      const included = ids.included ? document.getElementById(ids.included) : null;
+      if (!btn) return;
+
+      if (!currentUser) {
+        btn.style.display = '';
+        if (own) own.style.display = 'none';
+        if (included) included.style.display = 'none';
+        return;
+      }
+
+      const cardRank = rank[planKey];
+      if (cardRank === myRank) {
+        btn.style.display = 'none';
+        if (own) own.style.display = 'block';
+        if (included) included.style.display = 'none';
+      } else if (cardRank < myRank) {
+        btn.style.display = 'none';
+        if (own) own.style.display = 'none';
+        if (included) included.style.display = 'block';
+      } else {
+        btn.style.display = '';
+        if (own) own.style.display = 'none';
+        if (included) included.style.display = 'none';
+      }
+    });
   }
 
 /* ------------------------------------------------------------
