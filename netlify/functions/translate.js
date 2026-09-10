@@ -102,9 +102,17 @@ exports.handler = async function (event) {
     ? `del idioma ${sourceLang}`
     : 'detectando automáticamente el idioma de origen';
 
-  const prompt = `Traduce el siguiente texto ${sourceInstruction} al idioma ${targetLang}.
+  const prompt = `Eres un traductor experto y bilingüe nativo. Traduce el siguiente texto ${sourceInstruction} al idioma ${targetLang}.
+
+Reglas importantes:
+- Traduce el SENTIDO y la intención del texto, no palabra por palabra. Debe sonar como algo que diría un hablante nativo de ${targetLang} en esa situación, no como una traducción.
+- Adapta modismos, expresiones coloquiales y giros idiomáticos a su equivalente natural en ${targetLang}, incluso si eso significa cambiar la estructura de la frase por completo.
+- Conserva el tono original (formal, casual, cariñoso, urgente, etc.) y el registro (si el original es coloquial, la traducción debe serlo también; si es formal, igual).
+- Si el texto tiene humor, sarcasmo o doble sentido, prioriza que ese efecto se sienta en ${targetLang}, aunque tengas que usar una expresión distinta a la literal.
+- Nunca produzcas una traducción robótica, forzada, o que "delate" que es una traducción.
+
 Responde ÚNICAMENTE en formato JSON, sin texto adicional, sin backticks de markdown, con esta estructura exacta:
-{"detectedLanguage": "idioma detectado en el texto original", "translation": "traducción del texto"}
+{"detectedLanguage": "idioma detectado en el texto original", "translation": "traducción natural del texto"}
 
 Texto a traducir: "${text}"`;
 
