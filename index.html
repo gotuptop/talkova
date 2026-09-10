@@ -391,7 +391,7 @@
           <li data-i18n="f.support">Priority support</li>
           <li data-i18n="f.early">Early access to new features</li>
         </ul>
-        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">🔬 <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" target="_blank" rel="noopener" style="color:var(--purple-light)" data-i18n="pr.scienceLink">Backed by real sleep science</a></p>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">🔬 <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" id="scienceLinkGrid" target="_blank" rel="noopener" style="color:var(--purple-light)" data-i18n="pr.scienceLink">Backed by real sleep science</a></p>
       </div>
 
     </div>
@@ -415,7 +415,7 @@
           <li data-i18n="f.support">Priority support</li>
           <li data-i18n="f.early">Early access to new features</li>
         </ul>
-        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">🔬 <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" target="_blank" rel="noopener" style="color:var(--purple-light)" data-i18n="pr.scienceLink">Backed by real sleep science</a></p>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">🔬 <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" id="scienceLinkThankYou" target="_blank" rel="noopener" style="color:var(--purple-light)" data-i18n="pr.scienceLink">Backed by real sleep science</a></p>
       </div>
     </div>
 
@@ -770,6 +770,7 @@
     if (lc) lc.textContent = t('lg.copy');
     renderLangPicker();
     renderNativePicker();
+    refreshScienceLinks();
     refreshLangLabels();
     renderTutor();
     refreshPricingUI();
@@ -863,6 +864,28 @@
     });
   }
 
+  // Google's translate proxy handles Google's own language codes, which
+  // differ slightly from ours in a couple of spots.
+  const GOOGLE_TRANSLATE_CODE = { fil: 'tl', zh: 'zh-CN' };
+  const SCIENCE_ARTICLE_URL = 'https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000';
+
+  // The study is only published in English. If the learner's native language
+  // is something else, route the link through Google Translate so the page
+  // opens already translated for them.
+  function scienceLinkUrl() {
+    if (nativeLang === 'en') return SCIENCE_ARTICLE_URL;
+    const code = GOOGLE_TRANSLATE_CODE[nativeLang] || nativeLang;
+    return `https://translate.google.com/translate?sl=en&tl=${code}&u=${encodeURIComponent(SCIENCE_ARTICLE_URL)}`;
+  }
+
+  function refreshScienceLinks() {
+    const url = scienceLinkUrl();
+    ['scienceLinkGrid', 'scienceLinkThankYou'].forEach(id => {
+      const a = document.getElementById(id);
+      if (a) a.href = url;
+    });
+  }
+
   // The native-language picker offers every language in the catalog — someone's
   // mother tongue isn't limited to the two the interface toggle covers.
   function renderNativePicker() {
@@ -885,6 +908,7 @@
     }
     nativeLang = code;
     renderNativePicker();
+    refreshScienceLinks();
     setMicLang(document.getElementById('micNative')?.classList.contains('active') ? 'native' : 'target');
 
     if (currentUser && supabaseClient) {
@@ -1239,6 +1263,7 @@
         micLang = LEARN_LANGS[learnLang]?.mic || 'en-US';
         renderLangPicker();
         renderNativePicker();
+        refreshScienceLinks();
         refreshLangLabels();
         if (data.level) {
           const badge = document.getElementById('levelBadge');
@@ -1895,7 +1920,7 @@
         html += `<div class="locked-box">
             <div class="locked-title">🔒 Included in Premium</div>
             <div class="locked-text">Your lesson audio plays at 25% volume while you sleep, then you review it in the morning with a written PDF of the lesson — including that day's homework. This is the part that makes the phrases stick.</div>
-            <p style="font-size:11px;color:var(--text-muted);margin:-4px 0 12px">🔬 <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" target="_blank" rel="noopener" style="color:var(--purple-light)">Backed by real sleep science</a> — targeted memory reactivation</p>
+            <p style="font-size:11px;color:var(--text-muted);margin:-4px 0 12px">🔬 <a href="${scienceLinkUrl()}" target="_blank" rel="noopener" style="color:var(--purple-light)">${t('pr.scienceLink')}</a> — targeted memory reactivation</p>
             <button class="locked-btn" onclick="showUpgrade()">See Premium →</button>
           </div>`;
       }
