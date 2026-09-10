@@ -338,8 +338,8 @@
 
   <section id="pricing">
     <div id="pricingDefault">
-      <h2 class="pricing-title" data-i18n="pr.title">Simple, honest pricing</h2>
-      <p class="pricing-sub" data-i18n="pr.sub">Start free. Upgrade when you're ready.</p>
+      <h2 class="pricing-title" id="pricingTitle" data-i18n="pr.title">Simple, honest pricing</h2>
+      <p class="pricing-sub" id="pricingSub" data-i18n="pr.sub">Start free. Upgrade when you're ready.</p>
       <div class="pricing-grid">
 
       <div class="plan" id="freePlanCard">
@@ -391,6 +391,7 @@
           <li data-i18n="f.support">Priority support</li>
           <li data-i18n="f.early">Early access to new features</li>
         </ul>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">🔬 <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" target="_blank" rel="noopener" style="color:var(--purple-light)" data-i18n="pr.scienceLink">Backed by real sleep science</a></p>
       </div>
 
     </div>
@@ -414,6 +415,7 @@
           <li data-i18n="f.support">Priority support</li>
           <li data-i18n="f.early">Early access to new features</li>
         </ul>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">🔬 <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" target="_blank" rel="noopener" style="color:var(--purple-light)" data-i18n="pr.scienceLink">Backed by real sleep science</a></p>
       </div>
     </div>
 
@@ -589,7 +591,7 @@
       'pr.premDesc':'Inmersión completa, con aprendizaje mientras duermes.','pr.premBtn':'Quiero Premium →',
       'f.5conv':'5 conversaciones al día','f.text':'Chat de texto','f.unlim':'Conversaciones sin límite',
       'f.voiceY':'Voz sin límite 🎤', 'f.voiceFree':'10 respuestas con voz al día 🎤','f.corr':'Correcciones al instante',
-      'f.allpro':'Todo lo de Pro','f.night25':'Audio nocturno al 25% de volumen','f.pdf':'Guías de lección en PDF',
+      'f.allpro':'Todo lo de Pro','f.night25':'Audio nocturno al 25% de volumen','f.pdf':'PDF de repaso con la lección y las tareas de cada clase',
       'f.algo':'Algoritmo personalizado','f.support':'Soporte prioritario','f.early':'Acceso anticipado a lo nuevo',
       'f.tutors':'Los 3 tutores de IA','f.voiceN':'Conversaciones por voz','f.progN':'Seguimiento de avance',
       'f.nightN':'Lecciones de audio nocturnas','f.prog':'Seguimiento de avance',
@@ -635,7 +637,12 @@
       'pr.proStatusOwn':'Gracias por tu suscripción Pro. Pásate a Premium para tener más beneficios ✨',
       'pr.premStatusOwn':'Gracias por tu suscripción. Te avisaremos de nuevas funciones pronto — son gratis para ti 🎉',
       'pr.statusIncluded':'Incluido en tu plan ✓',
-      'pr.premiumOwn':'Premium ✓'
+      'pr.premiumOwn':'Premium ✓',
+      'pr.scienceLink':'Respaldado por ciencia real del sueño',
+      'pr.titleFree':'¡Ya estás inscrito! Bienvenido 🎉',
+      'pr.subFree':'Disfruta tu plan gratuito — y esto es lo que te espera si subes de plan',
+      'pr.titlePro':'¡Ya eres Pro! 🎉',
+      'pr.subPro':'Esto es lo que Premium te ofrece de más'
     },
     en: {
       'nav.try':'Try free', 'nav.start':'Start learning', 'nav.signout':'Sign out',
@@ -665,7 +672,7 @@
       'pr.premDesc':'Full immersion with subconscious learning while you sleep.','pr.premBtn':'Get Premium →',
       'f.5conv':'5 conversations per day','f.text':'Text chat','f.unlim':'Unlimited conversations',
       'f.voiceY':'Unlimited voice 🎤', 'f.voiceFree':'10 spoken replies a day 🎤','f.corr':'Instant corrections',
-      'f.allpro':'Everything in Pro','f.night25':'Night audio at 25% volume','f.pdf':'PDF lesson guides',
+      'f.allpro':'Everything in Pro','f.night25':'Night audio at 25% volume','f.pdf':'PDF review guide with each lesson\'s homework',
       'f.algo':'Personalized algorithm','f.support':'Priority support','f.early':'Early access to new features',
       'f.tutors':'All 3 AI tutors','f.voiceN':'Voice conversations','f.progN':'Progress tracking',
       'f.nightN':'Night audio lessons','f.prog':'Progress tracking',
@@ -711,7 +718,12 @@
       'pr.proStatusOwn':'Thanks for being Pro. Go Premium for even more benefits ✨',
       'pr.premStatusOwn':"Thanks for subscribing. We'll let you know about new features soon — free for you 🎉",
       'pr.statusIncluded':'Included in your plan ✓',
-      'pr.premiumOwn':'Premium ✓'
+      'pr.premiumOwn':'Premium ✓',
+      'pr.scienceLink':'Backed by real sleep science',
+      'pr.titleFree':"You're all set! Welcome 🎉",
+      'pr.subFree':"Enjoy your free plan — and here's what's waiting for you if you upgrade",
+      'pr.titlePro':"You're already Pro! 🎉",
+      'pr.subPro':'Here\'s what Premium adds on top'
     }
   };
 
@@ -756,6 +768,7 @@
     renderNativePicker();
     refreshLangLabels();
     renderTutor();
+    refreshPricingUI();
     if (document.getElementById('translatorModal')?.classList.contains('show')) {
       renderTranslatorPickers();
     }
@@ -1086,6 +1099,23 @@
     }
     if (defaultView) defaultView.style.display = '';
     if (thankYouView) thankYouView.style.display = 'none';
+
+    // The header above the cards also reflects the plan you're already on —
+    // "simple pricing" reads oddly once you're already paying for one.
+    const titleEl = document.getElementById('pricingTitle');
+    const subEl = document.getElementById('pricingSub');
+    if (titleEl && subEl) {
+      if (!currentUser) {
+        titleEl.textContent = t('pr.title');
+        subEl.textContent = t('pr.sub');
+      } else if (userPlan === 'pro') {
+        titleEl.textContent = t('pr.titlePro');
+        subEl.textContent = t('pr.subPro');
+      } else {
+        titleEl.textContent = t('pr.titleFree');
+        subEl.textContent = t('pr.subFree');
+      }
+    }
 
     const cards = {
       free:    { card: 'freePlanCard',    btn: 'freePlanBtn',    own: 'freePlanStatusOwn' },
@@ -1853,7 +1883,8 @@
       } else {
         html += `<div class="locked-box">
             <div class="locked-title">🔒 Included in Premium</div>
-            <div class="locked-text">Your lesson audio plays at 25% volume while you sleep, then you review it in the morning. This is the part that makes the phrases stick.</div>
+            <div class="locked-text">Your lesson audio plays at 25% volume while you sleep, then you review it in the morning with a written PDF of the lesson — including that day's homework. This is the part that makes the phrases stick.</div>
+            <p style="font-size:11px;color:var(--text-muted);margin:-4px 0 12px">🔬 <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" target="_blank" rel="noopener" style="color:var(--purple-light)">Backed by real sleep science</a> — targeted memory reactivation</p>
             <button class="locked-btn" onclick="showUpgrade()">See Premium →</button>
           </div>`;
       }
