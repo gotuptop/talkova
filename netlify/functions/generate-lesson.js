@@ -152,6 +152,13 @@ exports.handler = async function (event) {
 The learner speaks ${native} and is learning ${target}. Write the key phrases and the
 night audio script in ${target}; write the tips and explanations in ${native}.
 
+IMPORTANT — writing system: write ${target} text in its native writing system, exactly as a
+native speaker would write it — for example Chinese characters for Chinese, kanji/hiragana/
+katakana for Japanese, Hangul for Korean, Devanagari for Hindi, Cyrillic for Russian, Arabic
+script for Arabic, Greek script for Greek, Thai script for Thai. Never use a romanized
+transliteration (no pinyin, no romaji, no informal spelling with Latin letters) unless ${target}
+is itself normally written in the Latin alphabet. Apply the same rule to ${native} text.
+
 Conversation:
 ${transcript}
 
