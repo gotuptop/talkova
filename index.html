@@ -391,7 +391,7 @@
           <li data-i18n="f.support">Priority support</li>
           <li data-i18n="f.early">Early access to new features</li>
         </ul>
-        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">🔬 <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" id="scienceLinkGrid" target="_blank" rel="noopener" style="color:var(--purple-light)" data-i18n="pr.scienceLink">Backed by real sleep science</a></p>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">🔬 <a href="#" onclick="openScienceInfo();return false;" style="color:var(--purple-light)" data-i18n="pr.scienceLink">Backed by real sleep science</a></p>
       </div>
 
     </div>
@@ -415,7 +415,7 @@
           <li data-i18n="f.support">Priority support</li>
           <li data-i18n="f.early">Early access to new features</li>
         </ul>
-        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">🔬 <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" id="scienceLinkThankYou" target="_blank" rel="noopener" style="color:var(--purple-light)" data-i18n="pr.scienceLink">Backed by real sleep science</a></p>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">🔬 <a href="#" onclick="openScienceInfo();return false;" style="color:var(--purple-light)" data-i18n="pr.scienceLink">Backed by real sleep science</a></p>
       </div>
     </div>
 
@@ -522,6 +522,19 @@
     </div>
 
     <p class="tr-error" id="trError" style="display:none"></p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="scienceModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" data-i18n="science.title">🔬 The science behind it</div>
+      <button class="modal-close" onclick="closeScienceInfo()" aria-label="Close">✕</button>
+    </div>
+    <p id="scienceContent" style="font-size:14px;line-height:1.6;color:var(--text)"></p>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:14px">
+      <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000" target="_blank" rel="noopener" style="color:var(--purple-light)" data-i18n="science.readOriginal">Read the original study (English) →</a>
+    </p>
   </div>
 </div>
 
@@ -641,6 +654,8 @@
       'pr.statusIncluded':'Incluido en tu plan ✓',
       'pr.premiumOwn':'Premium ✓',
       'pr.scienceLink':'Respaldado por ciencia real del sueño',
+      'science.title':'🔬 La ciencia detrás de esto',
+      'science.readOriginal':'Leer el estudio original (en inglés) →',
       'pr.titleFree':'¡Ya estás inscrito! Bienvenido 🎉',
       'pr.subFree':'Disfruta tu plan gratuito — y esto es lo que te espera si subes de plan',
       'pr.titlePro':'¡Ya eres Pro! 🎉',
@@ -724,6 +739,8 @@
       'pr.statusIncluded':'Included in your plan ✓',
       'pr.premiumOwn':'Premium ✓',
       'pr.scienceLink':'Backed by real sleep science',
+      'science.title':'🔬 The science behind it',
+      'science.readOriginal':'Read the original study (English) →',
       'pr.titleFree':"You're all set! Welcome 🎉",
       'pr.subFree':"Enjoy your free plan — and here's what's waiting for you if you upgrade",
       'pr.titlePro':"You're already Pro! 🎉",
@@ -770,7 +787,6 @@
     if (lc) lc.textContent = t('lg.copy');
     renderLangPicker();
     renderNativePicker();
-    refreshScienceLinks();
     refreshLangLabels();
     renderTutor();
     refreshPricingUI();
@@ -864,26 +880,52 @@
     });
   }
 
-  // Google's translate proxy handles Google's own language codes, which
-  // differ slightly from ours in a couple of spots.
-  const GOOGLE_TRANSLATE_CODE = { fil: 'tl', zh: 'zh-CN' };
+  // The sleep-science summary: a short, accurate paragraph the app can show
+  // in any of the learner's languages via our own translator (Claude), so it
+  // never depends on a third-party translate proxy staying available.
   const SCIENCE_ARTICLE_URL = 'https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.70000';
+  const SCIENCE_SUMMARY_EN = "Talkova's night audio is based on Targeted Memory Reactivation (TMR), a sleep-science technique studied for over a decade. In TMR, sounds tied to something you already learned are played softly during sleep, which helps your brain consolidate that memory. A 2025 study published in the Journal of Sleep Research tested this specifically for vocabulary learning at home and found it improved next-day recall. Talkova uses the same principle: reinforcing the phrases from that day's lesson — not teaching brand-new content while you sleep.";
+  let scienceSummaryCache = {};
 
-  // The study is only published in English. If the learner's native language
-  // is something else, route the link through Google Translate so the page
-  // opens already translated for them.
-  function scienceLinkUrl() {
-    if (nativeLang === 'en') return SCIENCE_ARTICLE_URL;
-    const code = GOOGLE_TRANSLATE_CODE[nativeLang] || nativeLang;
-    return `https://translate.google.com/translate?sl=en&tl=${code}&u=${encodeURIComponent(SCIENCE_ARTICLE_URL)}`;
+  function closeScienceInfo() {
+    document.getElementById('scienceModal').classList.remove('show');
   }
 
-  function refreshScienceLinks() {
-    const url = scienceLinkUrl();
-    ['scienceLinkGrid', 'scienceLinkThankYou'].forEach(id => {
-      const a = document.getElementById(id);
-      if (a) a.href = url;
-    });
+  async function openScienceInfo() {
+    document.getElementById('scienceModal').classList.add('show');
+    const contentEl = document.getElementById('scienceContent');
+
+    if (nativeLang === 'en' || !currentUser) {
+      contentEl.textContent = SCIENCE_SUMMARY_EN;
+      return;
+    }
+    if (scienceSummaryCache[nativeLang]) {
+      contentEl.textContent = scienceSummaryCache[nativeLang];
+      return;
+    }
+
+    contentEl.textContent = t('tr.submitting');
+    try {
+      const res = await fetch('/.netlify/functions/translate', {
+        method: 'POST',
+        headers: await authHeaders(),
+        body: JSON.stringify({
+          text: SCIENCE_SUMMARY_EN,
+          sourceLang: 'English',
+          targetLang: LEARN_LANGS[nativeLang]?.en || nativeLang,
+          internal: true
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        contentEl.textContent = SCIENCE_SUMMARY_EN;
+        return;
+      }
+      scienceSummaryCache[nativeLang] = data.translation;
+      contentEl.textContent = data.translation;
+    } catch (e) {
+      contentEl.textContent = SCIENCE_SUMMARY_EN;
+    }
   }
 
   // The native-language picker offers every language in the catalog — someone's
@@ -908,7 +950,6 @@
     }
     nativeLang = code;
     renderNativePicker();
-    refreshScienceLinks();
     setMicLang(document.getElementById('micNative')?.classList.contains('active') ? 'native' : 'target');
 
     if (currentUser && supabaseClient) {
@@ -1263,7 +1304,6 @@
         micLang = LEARN_LANGS[learnLang]?.mic || 'en-US';
         renderLangPicker();
         renderNativePicker();
-        refreshScienceLinks();
         refreshLangLabels();
         if (data.level) {
           const badge = document.getElementById('levelBadge');
@@ -1920,7 +1960,7 @@
         html += `<div class="locked-box">
             <div class="locked-title">🔒 Included in Premium</div>
             <div class="locked-text">Your lesson audio plays at 25% volume while you sleep, then you review it in the morning with a written PDF of the lesson — including that day's homework. This is the part that makes the phrases stick.</div>
-            <p style="font-size:11px;color:var(--text-muted);margin:-4px 0 12px">🔬 <a href="${scienceLinkUrl()}" target="_blank" rel="noopener" style="color:var(--purple-light)">${t('pr.scienceLink')}</a> — targeted memory reactivation</p>
+            <p style="font-size:11px;color:var(--text-muted);margin:-4px 0 12px">🔬 <a href="#" onclick="openScienceInfo();return false;" style="color:var(--purple-light)">${t('pr.scienceLink')}</a> — targeted memory reactivation</p>
             <button class="locked-btn" onclick="showUpgrade()">See Premium →</button>
           </div>`;
       }
