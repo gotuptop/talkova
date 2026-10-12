@@ -9,6 +9,11 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const FREE_DAILY_TRANSLATIONS = 10;
 const MAX_TEXT_CHARS = 2000;
 
+// El intérprete en vivo manda una frase tras otra, así que usa un modelo más
+// rápido y barato; el traductor de texto conserva el modelo de mayor calidad.
+const TEXT_MODEL = 'claude-sonnet-4-6';
+const LIVE_MODEL = 'claude-haiku-4-5-20251001';
+
 const json = (statusCode, payload) => ({
   statusCode,
   headers: { 'Content-Type': 'application/json' },
@@ -77,7 +82,8 @@ exports.handler = async function (event) {
     return json(400, { error: 'Solicitud mal formada.' });
   }
 
-  const { text, targetLang, sourceLang, voiceOutput, internal } = body;
+  const { text, targetLang, sourceLang, voiceOutput, internal, live } = body;
+  const context = typeof body.context === 'string' ? body.context.slice(-400) : '';
 
   if (!text || !targetLang) {
     return json(400, { error: 'Faltan campos: text o targetLang' });
@@ -104,7 +110,21 @@ exports.handler = async function (event) {
     ? `del idioma ${sourceLang}`
     : 'detectando automáticamente el idioma de origen';
 
-  const prompt = `Eres un traductor experto y bilingüe nativo. Traduce el siguiente texto ${sourceInstruction} al idioma ${targetLang}.
+  const livePrompt = `Eres un intérprete simultáneo profesional. Recibes la transcripción automática de lo que alguien acaba de decir en voz alta ${sourceInstruction} e interpretas al idioma ${targetLang}.
+
+Reglas importantes:
+- La transcripción viene de reconocimiento de voz: puede traer palabras mal reconocidas, sin puntuación ni mayúsculas, o frases cortadas. Deduce lo que la persona quiso decir e interpreta ese sentido.
+- Escribe la interpretación como texto natural y bien puntuado en ${targetLang}, como lo diría un hablante nativo. Conserva el tono y el registro.
+- Sé fiel y breve: no agregues explicaciones, notas ni nada que la persona no haya dicho.
+- Si el fragmento está incompleto, interpreta solo lo que hay.
+- El contexto anterior sirve únicamente para entender de qué se habla. NO lo traduzcas ni lo repitas.
+
+Responde ÚNICAMENTE en formato JSON, sin texto adicional, sin backticks de markdown, con esta estructura exacta:
+{"detectedLanguage": "idioma del fragmento", "translation": "interpretación del fragmento"}
+${context ? `\nContexto anterior (no traducir): "${context}"\n` : ''}
+Fragmento a interpretar: "${text}"`;
+
+  const prompt = live ? livePrompt : `Eres un traductor experto y bilingüe nativo. Traduce el siguiente texto ${sourceInstruction} al idioma ${targetLang}.
 
 Reglas importantes:
 - Traduce el SENTIDO y la intención del texto, no palabra por palabra. Debe sonar como algo que diría un hablante nativo de ${targetLang} en esa situación, no como una traducción.
@@ -127,7 +147,7 @@ Texto a traducir: "${text}"`;
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: live ? LIVE_MODEL : TEXT_MODEL,
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -147,7 +167,10 @@ Texto a traducir: "${text}"`;
     let parsed;
     try {
       const cleaned = rawText.replace(/```json|```/g, '').trim();
-      parsed = JSON.parse(cleaned);
+      // Si el modelo agrega una palabra antes o después, nos quedamos con el objeto.
+      const start = cleaned.indexOf('{');
+      const end = cleaned.lastIndexOf('}');
+      parsed = JSON.parse(start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned);
     } catch (e) {
       console.error('No se pudo parsear la respuesta de Claude:', rawText);
       return json(502, { error: 'Respuesta inválida del traductor.' });
@@ -155,7 +178,7 @@ Texto a traducir: "${text}"`;
 
     // Audio opcional con ElevenLabs (voces Maya/Leo ya configuradas)
     let audioBase64 = null;
-    if (voiceOutput) {
+    if (voiceOutput && !live) {
       const voiceIds = {
         english: process.env.ELEVENLABS_VOICE_LEO,
         spanish: process.env.ELEVENLABS_VOICE_MAYA

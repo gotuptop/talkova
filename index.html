@@ -260,6 +260,26 @@
   .tr-error{color:var(--red);font-size:12px;margin-top:10px}
   .tr-voice-row{display:flex;align-items:center;justify-content:space-between;margin:12px 0}
   .tr-voice-label{font-size:12px;color:var(--text-soft);display:flex;align-items:center;gap:6px}
+  .tr-bar{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;flex-shrink:0;padding:9px 12px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;color:var(--text);background:rgba(83,74,183,.18);border:none;border-bottom:1px solid var(--border);cursor:pointer}
+  .tr-bar:hover{background:rgba(83,74,183,.3)}
+  .tr-bar-go{color:var(--purple-light);font-size:16px;line-height:1}
+  .tr-tabs{display:flex;gap:6px;background:var(--bg3);border-radius:999px;padding:4px;margin-top:4px}
+  .tr-tab{flex:1;padding:8px 10px;font-size:13px;font-weight:600;border:none;border-radius:999px;background:transparent;color:var(--text-soft);cursor:pointer;font-family:'Inter',sans-serif}
+  .tr-tab.active{background:var(--purple);color:white}
+  .tr-swap{width:32px;height:32px;flex-shrink:0;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:15px;cursor:pointer}
+  .tr-swap:hover{border-color:var(--purple-light)}
+  .live-btn{display:block;width:100%;padding:13px;font-size:15px;font-weight:600;border:none;border-radius:12px;cursor:pointer;background:var(--purple);color:white;font-family:'Inter',sans-serif}
+  .live-btn.on{background:var(--red);animation:micpulse 1.2s infinite}
+  .live-status{font-size:12px;color:var(--text-soft);text-align:center;margin:8px 0 2px;min-height:16px}
+  .live-status.on{color:var(--red)}
+  .live-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:12px 0 5px}
+  .live-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;height:92px;overflow-y:auto;font-size:13px;line-height:1.5;color:var(--text-soft);white-space:pre-wrap;word-break:break-word}
+  .live-box.big{height:150px;font-size:16px;color:var(--text);background:var(--surface)}
+  .live-box:empty::before{content:attr(data-ph);color:var(--text-muted)}
+  .live-interim{opacity:.55;font-style:italic}
+  .live-actions{display:flex;gap:8px;margin-top:10px}
+  .live-actions button{flex:1;padding:9px;font-size:13px;font-weight:600;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-family:'Inter',sans-serif}
+  .live-hint{font-size:11px;color:var(--text-muted);line-height:1.5;margin-top:10px}
 </style>
 </head>
 <body>
@@ -353,7 +373,7 @@
           <li data-i18n="f.tutors">All 3 AI tutors</li>
           <li data-i18n="f.text">Text chat</li>
           <li data-i18n="f.voiceFree">10 spoken replies a day 🎤</li>
-          <li data-i18n="f.translateFree">Quick translator (10/day) 🌐</li>
+          <li data-i18n="f.translateFree">Translator &amp; live interpreter (10/day) 🌐</li>
           <li class="no" data-i18n="f.progN">Progress tracking</li>
           <li class="no" data-i18n="f.nightN">Night audio lessons</li>
         </ul>
@@ -370,7 +390,7 @@
           <li data-i18n="f.unlim">Unlimited conversations</li>
           <li data-i18n="f.tutors">All 3 AI tutors</li>
           <li data-i18n="f.voiceY">Voice conversations 🎤</li>
-          <li data-i18n="f.translateY">Unlimited translator 🌐</li>
+          <li data-i18n="f.translateY">Unlimited translator &amp; live interpreter 🌐</li>
           <li data-i18n="f.corr">Instant corrections</li>
           <li data-i18n="f.prog">Progress tracking</li>
           <li class="no" data-i18n="f.nightN">Night audio lessons</li>
@@ -406,7 +426,7 @@
           <li data-i18n="f.unlim">Unlimited conversations</li>
           <li data-i18n="f.tutors">All 3 AI tutors</li>
           <li data-i18n="f.voiceY">Voice conversations 🎤</li>
-          <li data-i18n="f.translateY">Unlimited translator 🌐</li>
+          <li data-i18n="f.translateY">Unlimited translator &amp; live interpreter 🌐</li>
           <li data-i18n="f.corr">Instant corrections</li>
           <li data-i18n="f.prog">Progress tracking</li>
           <li data-i18n="f.night25">Night audio at 25% volume</li>
@@ -439,10 +459,12 @@
       <div><div class="aname"><span id="appName">Maya</span> <span class="tutor-lang" id="appLang"></span></div><div class="astat" id="appStat">● Online</div></div>
     </div>
     <button class="spk-toggle on" id="spkToggle" onclick="toggleSpeaker()" title="Tutor voice">🔊</button>
-    <button class="translate-btn" onclick="openTranslator()" title="Translator">🌐</button>
     <button style="background:none;border:1px solid var(--border);border-radius:999px;color:var(--text-soft);font-size:11px;padding:4px 10px;cursor:pointer" onclick="endSession()" title="End session and get your lesson">End</button>
     <button class="plan-pill plan-free" id="planPill" onclick="showUpgrade()">Free</button>
   </div>
+  <button class="tr-bar" onclick="openTranslator()">
+    <span data-i18n="tr.bar">🌐 Translator &amp; live interpreter</span><span class="tr-bar-go">›</span>
+  </button>
   <div class="avzone">
     <div class="avframe" id="avFrame"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:90px;height:90px;border-radius:50%;object-fit:cover"/></div>
     <div class="voice-controls">
@@ -495,16 +517,22 @@
 <div class="modal-overlay" id="translatorModal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" data-i18n="tr.title">🌐 Translator</div>
+      <div class="modal-title" data-i18n="tr.title">🌐 Translator &amp; interpreter</div>
       <button class="modal-close" onclick="closeTranslator()" aria-label="Close">✕</button>
     </div>
 
-    <div class="tr-row">
-      <select class="learn-select small" id="trSourceLang" style="flex:1"></select>
-      <span class="tr-arrow">→</span>
-      <select class="learn-select small" id="trTargetLang" style="flex:1"></select>
+    <div class="tr-tabs">
+      <button class="tr-tab active" id="trTabText" data-i18n="tr.tabText" onclick="setTranslatorMode('text')">✍️ Text</button>
+      <button class="tr-tab" id="trTabLive" data-i18n="tr.tabLive" onclick="setTranslatorMode('live')">🎙️ Live</button>
     </div>
 
+    <div class="tr-row">
+      <select class="learn-select small" id="trSourceLang" style="flex:1;min-width:0" onchange="onTranslatorLangChange()"></select>
+      <button class="tr-swap" id="trSwapBtn" onclick="swapTranslatorLangs()" title="⇄" aria-label="Swap languages">⇄</button>
+      <select class="learn-select small" id="trTargetLang" style="flex:1;min-width:0" onchange="onTranslatorLangChange()"></select>
+    </div>
+
+    <div id="trTextPane">
     <textarea class="tr-input" id="trInput" maxlength="2000" data-i18n-ph="tr.placeholder" placeholder="Type the text to translate..."></textarea>
 
     <div class="tr-voice-row">
@@ -519,6 +547,21 @@
       <p class="tr-detected" id="trDetected"></p>
       <p class="tr-output" id="trOutput"></p>
       <audio id="trAudio" controls style="display:none;width:100%;margin-top:10px"></audio>
+    </div>
+    </div>
+
+    <div id="trLivePane" style="display:none">
+      <button class="live-btn" id="liveBtn" onclick="toggleLive()">🎙️ Start listening</button>
+      <p class="live-status" id="liveStatus"></p>
+      <div class="live-label" data-i18n="live.original">Original</div>
+      <div class="live-box" id="liveOriginal"></div>
+      <div class="live-label" data-i18n="live.translation">Translation</div>
+      <div class="live-box big" id="liveTranslation"></div>
+      <div class="live-actions">
+        <button data-i18n="live.copy" onclick="copyLive()">Copy</button>
+        <button data-i18n="live.clear" onclick="clearLive()">Clear</button>
+      </div>
+      <p class="live-hint" id="liveHint"></p>
     </div>
 
     <p class="tr-error" id="trError" style="display:none"></p>
@@ -634,7 +677,8 @@
       'mic.unsupported':'Este navegador no admite dictado. En iPhone usa Safari.',
       'voice.blocked':'Toca la pantalla para activar el audio. Si tu iPhone está en silencio, sube el interruptor lateral.',
       'chat.greet':'¡Hola! Soy {name} 👋 Soy tu tutor de {lang} en Talkova. Puedes escribir o tocar el 🎤 para hablar — lo que te resulte más cómodo. ¿Qué te gustaría practicar hoy?',
-      'tr.title':'🌐 Traductor',
+      'tr.title':'🌐 Traductor e intérprete',
+      'tr.bar':'🌐 Traductor e intérprete en vivo',
       'tr.placeholder':'Escribe el texto a traducir...',
       'tr.listen':'Escuchar traducción',
       'tr.submit':'Traducir',
@@ -644,8 +688,24 @@
       'tr.signinNeeded':'Inicia sesión para usar el traductor.',
       'tr.detected':'Detectado: {lang}',
       'tr.connError':'Error de conexión. Intenta de nuevo.',
-      'f.translateFree':'Traductor rápido (10/día) 🌐',
-      'f.translateY':'Traductor sin límite 🌐',
+      'tr.tabText':'✍️ Texto',
+      'tr.tabLive':'🎙️ En vivo',
+      'live.start':'🎙️ Empezar a escuchar',
+      'live.stop':'⏹ Detener',
+      'live.idle':'Escucho, interpreto y escribo en vivo.',
+      'live.listening':'\u25cf Escuchando en {lang}...',
+      'live.original':'Original',
+      'live.translation':'Interpretación',
+      'live.phOriginal':'Aquí aparece lo que se dice...',
+      'live.phTranslation':'Aquí aparece la interpretación...',
+      'live.copy':'Copiar',
+      'live.clear':'Limpiar',
+      'live.copied':'Interpretación copiada ✓',
+      'live.same':'Elige dos idiomas distintos.',
+      'live.hint':'Habla con pausas cortas: cada frase se interpreta al terminar. En iPhone usa Safari.',
+      'live.hintFree':'En el plan Free cada frase cuenta como una de tus 10 traducciones del día.',
+      'f.translateFree':'Traductor e intérprete en vivo (10/día) 🌐',
+      'f.translateY':'Traductor e intérprete en vivo sin límite 🌐',
       'native.label':'Ya hablo',
       'native.changed':'Tu tutor ahora te explica en {lang} 🎉',
       'native.sameWarning':'Elige un idioma distinto al que quieres aprender',
@@ -721,7 +781,8 @@
       'mic.unsupported':'This browser does not support dictation. On iPhone, use Safari.',
       'voice.blocked':'Tap the screen to enable audio. If your iPhone is on silent, flip the side switch.',
       'chat.greet':"Hi! I'm {name} 👋 I'm your {lang} tutor at Talkova. You can type or tap the 🎤 to speak — whatever feels comfortable. What would you like to practice today?",
-      'tr.title':'🌐 Translator',
+      'tr.title':'🌐 Translator & interpreter',
+      'tr.bar':'🌐 Translator & live interpreter',
       'tr.placeholder':'Type the text to translate...',
       'tr.listen':'Listen to translation',
       'tr.submit':'Translate',
@@ -731,8 +792,24 @@
       'tr.signinNeeded':'Sign in to use the translator.',
       'tr.detected':'Detected: {lang}',
       'tr.connError':'Connection error. Try again.',
-      'f.translateFree':'Quick translator (10/day) 🌐',
-      'f.translateY':'Unlimited translator 🌐',
+      'tr.tabText':'✍️ Text',
+      'tr.tabLive':'🎙️ Live',
+      'live.start':'🎙️ Start listening',
+      'live.stop':'⏹ Stop',
+      'live.idle':'I listen, interpret and write it out live.',
+      'live.listening':'\u25cf Listening in {lang}...',
+      'live.original':'Original',
+      'live.translation':'Interpretation',
+      'live.phOriginal':'What is being said shows up here...',
+      'live.phTranslation':'The interpretation shows up here...',
+      'live.copy':'Copy',
+      'live.clear':'Clear',
+      'live.copied':'Interpretation copied ✓',
+      'live.same':'Pick two different languages.',
+      'live.hint':'Speak with short pauses: each phrase is interpreted as it ends. On iPhone, use Safari.',
+      'live.hintFree':'On the Free plan each phrase counts as one of your 10 daily translations.',
+      'f.translateFree':'Translator & live interpreter (10/day) 🌐',
+      'f.translateY':'Unlimited translator & live interpreter 🌐',
       'native.label':'I already speak',
       'native.changed':'Your tutor now explains in {lang} 🎉',
       'native.sameWarning':'Choose a different language than the one you want to learn',
@@ -983,6 +1060,8 @@
     // Default target: whatever the user isn't currently learning in, so the
     // picker is rarely left on a same-language no-op translation.
     tgt.value = (learnLang !== nativeLang) ? nativeLang : learnLang;
+    if (translatorMode === 'live') liveSourceCode();
+    updateLiveUI();
   }
 
   function openTranslator() {
@@ -996,6 +1075,7 @@
   }
 
   function closeTranslator() {
+    stopLive();
     document.getElementById('translatorModal').classList.remove('show');
     document.getElementById('trResult').style.display = 'none';
     document.getElementById('trError').style.display = 'none';
@@ -1059,6 +1139,301 @@
       submitBtn.textContent = t('tr.submit');
     }
   }
+
+
+  /* ------------------------------------------------------------
+     Live interpreter — a second mode inside the translator.
+     The browser's speech recognition listens continuously; every
+     finished phrase goes to translate.js (live:true) and the
+     interpretation is written under the original as it arrives.
+     ------------------------------------------------------------ */
+
+  let translatorMode = 'text';
+  let liveActive = false;
+  let liveRec = null;          // current SpeechRecognition instance
+  let liveRecStartedAt = 0;
+  let liveQuickEnds = 0;       // consecutive sessions that died right away
+  let liveRestartTimer = null;
+  let liveInterim = '';
+  let liveOrigText = '';
+  let liveTransText = '';
+  let liveQueue = [];          // finished phrases waiting to be interpreted
+  let liveBusy = false;
+  let liveContext = '';        // tail of what was already said, for coherence
+  let liveRun = 0;             // bumps on clear, so late answers are dropped
+  let liveWakeLock = null;
+
+  function setTranslatorMode(mode) {
+    if (mode !== 'live') stopLive();
+    translatorMode = mode;
+    document.getElementById('trTabText').classList.toggle('active', mode === 'text');
+    document.getElementById('trTabLive').classList.toggle('active', mode === 'live');
+    document.getElementById('trTextPane').style.display = mode === 'text' ? '' : 'none';
+    document.getElementById('trLivePane').style.display = mode === 'live' ? '' : 'none';
+    document.getElementById('trError').style.display = 'none';
+    if (mode === 'live') liveSourceCode();
+    updateLiveUI();
+  }
+
+  // Speech recognition cannot detect the language by itself, so live mode
+  // always needs a concrete source. "Auto-detect" becomes a sensible guess.
+  function liveSourceCode() {
+    const srcEl = document.getElementById('trSourceLang');
+    const tgt = document.getElementById('trTargetLang').value;
+    if (!srcEl.value) {
+      let guess = (tgt === nativeLang) ? learnLang : nativeLang;
+      if (guess === tgt) guess = (tgt === 'en') ? 'es' : 'en';
+      srcEl.value = guess;
+    }
+    return srcEl.value;
+  }
+
+  function showLiveError(msg) {
+    const el = document.getElementById('trError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function updateLiveUI() {
+    const btn = document.getElementById('liveBtn');
+    if (!btn) return;
+    const status = document.getElementById('liveStatus');
+    btn.textContent = t(liveActive ? 'live.stop' : 'live.start');
+    btn.classList.toggle('on', liveActive);
+    status.classList.toggle('on', liveActive);
+    if (liveActive) {
+      const code = document.getElementById('trSourceLang').value;
+      status.textContent = t('live.listening').replace('{lang}', LEARN_LANGS[code]?.[lang] || code);
+    } else {
+      status.textContent = t('live.idle');
+    }
+    document.getElementById('liveOriginal').setAttribute('data-ph', t('live.phOriginal'));
+    document.getElementById('liveTranslation').setAttribute('data-ph', t('live.phTranslation'));
+    document.getElementById('liveHint').textContent =
+      t('live.hint') + (userPlan === 'free' ? ' ' + t('live.hintFree') : '');
+  }
+
+  function renderLive() {
+    const o = document.getElementById('liveOriginal');
+    const tr = document.getElementById('liveTranslation');
+    o.textContent = liveOrigText;
+    if (liveInterim) {
+      const span = document.createElement('span');
+      span.className = 'live-interim';
+      span.textContent = (liveOrigText ? '\n' : '') + liveInterim;
+      o.appendChild(span);
+    }
+    const pending = liveBusy || liveQueue.length;
+    tr.textContent = liveTransText + (pending ? (liveTransText ? '\n' : '') + '…' : '');
+    o.scrollTop = o.scrollHeight;
+    tr.scrollTop = tr.scrollHeight;
+  }
+
+  function pushLiveFinal(text) {
+    text = (text || '').trim();
+    if (!text) return;
+    liveOrigText += (liveOrigText ? '\n' : '') + text;
+    liveQueue.push({
+      text,
+      src: document.getElementById('trSourceLang').value,
+      tgt: document.getElementById('trTargetLang').value
+    });
+    renderLive();
+    pumpLive();
+  }
+
+  // One request at a time, in order. Phrases that pile up while a request
+  // is in flight travel together in the next one.
+  async function pumpLive() {
+    if (liveBusy || !liveQueue.length) return;
+    liveBusy = true;
+    const run = liveRun;
+    const first = liveQueue[0];
+    const batch = [];
+    let size = 0;
+    while (liveQueue.length && liveQueue[0].src === first.src && liveQueue[0].tgt === first.tgt
+           && (batch.length === 0 || size + liveQueue[0].text.length < 1800)) {
+      const item = liveQueue.shift();
+      size += item.text.length + 1;
+      batch.push(item.text);
+    }
+    const text = batch.join(' ').slice(0, 2000);
+    renderLive();
+    try {
+      const res = await fetch('/.netlify/functions/translate', {
+        method: 'POST',
+        headers: await authHeaders(),
+        body: JSON.stringify({
+          text,
+          sourceLang: LEARN_LANGS[first.src]?.en || first.src,
+          targetLang: LEARN_LANGS[first.tgt]?.en || first.tgt,
+          live: true,
+          context: liveContext
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (run === liveRun) {
+        if (!res.ok) {
+          // 401 / 402 will not fix themselves on the next phrase: stop listening.
+          liveQueue = [];
+          stopLive();
+          if (!handleApiError(res.status, data)) showLiveError(data.error || t('tr.connError'));
+        } else if (data.translation) {
+          liveTransText += (liveTransText ? '\n' : '') + data.translation;
+          liveContext = (liveContext + ' ' + text).slice(-400);
+        }
+      }
+    } catch (e) {
+      if (run === liveRun) showLiveError(t('tr.connError'));
+    } finally {
+      liveBusy = false;
+      renderLive();
+      if (liveQueue.length) pumpLive();
+    }
+  }
+
+  function spawnLiveRec() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR || !liveActive) return;
+    const code = liveSourceCode();
+    const r = new SR();
+    r.lang = LEARN_LANGS[code]?.mic || 'en-US';
+    r.interimResults = true;
+    // Android Chrome repeats earlier results in continuous mode, so there it
+    // runs phrase by phrase and onend starts the next one.
+    r.continuous = !/Android/i.test(navigator.userAgent);
+    r.maxAlternatives = 1;
+
+    r.onresult = (e) => {
+      if (r !== liveRec) return;
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const txt = e.results[i][0].transcript;
+        if (e.results[i].isFinal) pushLiveFinal(txt); else interim += txt;
+      }
+      liveInterim = interim;
+      liveQuickEnds = 0;
+      renderLive();
+    };
+
+    r.onerror = (e) => {
+      if (r !== liveRec) return;
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        stopLive(); showLiveError(t('mic.denied'));
+      } else if (e.error === 'audio-capture') {
+        stopLive(); showLiveError(t('mic.nodevice'));
+      }
+      // 'no-speech', 'aborted' and 'network' just end the session; onend restarts it.
+    };
+
+    r.onend = () => {
+      if (r !== liveRec) return;
+      // Whatever was still "interim" when the browser cut the session is kept.
+      if (liveInterim.trim()) { const pendingText = liveInterim; liveInterim = ''; pushLiveFinal(pendingText); }
+      if (!liveActive) return;
+      liveQuickEnds = (Date.now() - liveRecStartedAt < 1200) ? liveQuickEnds + 1 : 0;
+      if (liveQuickEnds >= 6) { stopLive(); showLiveError(t('mic.retry')); return; }
+      // Browsers close the session after a silence — reopen it right away.
+      liveRestartTimer = setTimeout(spawnLiveRec, 250);
+    };
+
+    liveRec = r;
+    liveRecStartedAt = Date.now();
+    try { r.start(); }
+    catch (err) {
+      liveRec = null;
+      liveQuickEnds++;
+      if (liveQuickEnds >= 6) { stopLive(); showLiveError(t('mic.retry')); return; }
+      liveRestartTimer = setTimeout(spawnLiveRec, 400);
+    }
+  }
+
+  function dropLiveRec() {
+    clearTimeout(liveRestartTimer);
+    const r = liveRec;
+    liveRec = null;
+    if (liveInterim.trim()) { const pendingText = liveInterim; liveInterim = ''; pushLiveFinal(pendingText); }
+    liveInterim = '';
+    if (r) { try { r.abort(); } catch (e) {} }
+  }
+
+  async function startLive() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    document.getElementById('trError').style.display = 'none';
+    if (!SR) { showLiveError(t('mic.unsupported')); return; }
+    const src = liveSourceCode();
+    if (src === document.getElementById('trTargetLang').value) { showLiveError(t('live.same')); return; }
+
+    // The tutor's voice and the chat mic would fight over the microphone.
+    const audioEl = document.getElementById('tutorAudio');
+    if (audioEl && !audioEl.paused) { audioEl.pause(); audioEl.currentTime = 0; }
+    currentAudio = null;
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+    if (isListening && recognition) { try { recognition.abort(); } catch (e) {} }
+
+    liveActive = true;
+    liveQuickEnds = 0;
+    spawnLiveRec();
+    updateLiveUI();
+    // Keeps the phone screen on while it listens, where the browser allows it.
+    try { if (navigator.wakeLock) liveWakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+
+  function stopLive() {
+    if (!liveActive && !liveRec) return;
+    liveActive = false;
+    dropLiveRec();
+    if (liveWakeLock) { try { liveWakeLock.release(); } catch (e) {} liveWakeLock = null; }
+    updateLiveUI();
+    renderLive();
+  }
+
+  function toggleLive() { if (liveActive) stopLive(); else startLive(); }
+
+  function clearLive() {
+    liveRun++;
+    liveQueue = [];
+    liveOrigText = ''; liveTransText = ''; liveInterim = ''; liveContext = '';
+    document.getElementById('trError').style.display = 'none';
+    renderLive();
+  }
+
+  async function copyLive() {
+    if (!liveTransText) return;
+    try { await navigator.clipboard.writeText(liveTransText); showToast(t('live.copied')); }
+    catch (e) { /* clipboard blocked: the text can still be selected by hand */ }
+  }
+
+  // A language changed while listening: reopen the mic in the new one.
+  function onTranslatorLangChange() {
+    if (translatorMode !== 'live') return;
+    document.getElementById('trError').style.display = 'none';
+    if (liveActive) {
+      dropLiveRec();
+      liveContext = '';
+      if (liveSourceCode() === document.getElementById('trTargetLang').value) {
+        stopLive(); showLiveError(t('live.same')); return;
+      }
+      spawnLiveRec();
+    }
+    updateLiveUI();
+  }
+
+  // ⇄ flips the pair — in a two-way conversation, one tap per turn.
+  function swapTranslatorLangs() {
+    const srcEl = document.getElementById('trSourceLang');
+    const tgtEl = document.getElementById('trTargetLang');
+    const src = srcEl.value || liveSourceCode();
+    const tgt = tgtEl.value;
+    if (liveActive) dropLiveRec();
+    srcEl.value = tgt;
+    tgtEl.value = src;
+    if (liveActive) { liveContext = ''; spawnLiveRec(); }
+    updateLiveUI();
+  }
+
+  // Phones cut the microphone when the app goes to the background anyway.
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stopLive(); });
 
   // The pair is saved on the user's row, so every request picks it up.
   async function setLearnLang(code) {
