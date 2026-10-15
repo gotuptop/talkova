@@ -722,6 +722,9 @@
       'hist.empty':'Aún no tienes lecciones guardadas. Termina una conversación con ⏹ End y aparecerá aquí.',
       'hist.error':'No pudimos cargar tus lecciones. Inténtalo de nuevo.',
       'hist.signin':'Inicia sesión para ver tus lecciones.',
+      'hist.lockedTitle':'🔒 Incluido en Premium',
+      'hist.lockedText':'Con Premium todas tus lecciones quedan guardadas: frases clave, correcciones, tarea y el PDF de cada sesión, listos para repasar desde tu teléfono cuando quieras.',
+      'hist.lockedBtn':'Ver Premium →',
       'hist.corrections':'{n} correcciones',
       'hist.phrases':'{n} frases',
       'lesson.today':'📚 Lección de hoy',
@@ -839,6 +842,9 @@
       'hist.empty':'No saved lessons yet. Finish a conversation with ⏹ End and it will show up here.',
       'hist.error':'We could not load your lessons. Try again.',
       'hist.signin':'Sign in to see your lessons.',
+      'hist.lockedTitle':'🔒 Included in Premium',
+      'hist.lockedText':'With Premium every lesson is saved: key phrases, corrections, homework and the PDF of each session, ready to review from your phone any time.',
+      'hist.lockedBtn':'See Premium →',
       'hist.corrections':'{n} corrections',
       'hist.phrases':'{n} phrases',
       'lesson.today':"📚 Today's Lesson",
@@ -2464,8 +2470,18 @@
       return;
     }
     const box = document.getElementById('historyContent');
-    box.innerHTML = '<div class="loading-lesson">⏳</div>';
     document.getElementById('historyModal').classList.add('show');
+
+    // The lesson history is a Premium feature, like the PDF and night audio.
+    if (!planAllows('night')) {
+      box.innerHTML = `<div class="locked-box">
+          <div class="locked-title">${t('hist.lockedTitle')}</div>
+          <div class="locked-text">${t('hist.lockedText')}</div>
+          <button class="locked-btn" onclick="closeLessonHistory();showUpgrade()">${t('hist.lockedBtn')}</button>
+        </div>`;
+      return;
+    }
+    box.innerHTML = '<div class="loading-lesson">⏳</div>';
 
     try {
       const { data, error } = await supabaseClient
