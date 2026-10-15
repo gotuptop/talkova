@@ -265,6 +265,16 @@
   .tr-bar{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;flex-shrink:0;padding:9px 12px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;color:var(--text);background:rgba(83,74,183,.18);border:none;border-bottom:1px solid var(--border);cursor:pointer}
   .tr-bar:hover{background:rgba(83,74,183,.3)}
   .tr-bar-go{color:var(--purple-light);font-size:16px;line-height:1}
+  .bar-row{display:flex;flex-shrink:0}
+  .bar-row .tr-bar{width:auto;flex:1;min-width:0}
+  .bar-row .tr-bar+.tr-bar{border-left:1px solid var(--border)}
+  .hist-item{width:100%;text-align:left;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;color:var(--text);font-family:'Inter',sans-serif;transition:border-color .2s}
+  .hist-item:hover{border-color:var(--purple)}
+  .hist-date{font-size:11px;color:var(--text-muted);margin-bottom:4px}
+  .hist-title{font-size:14px;font-weight:600;margin-bottom:4px}
+  .hist-meta{font-size:12px;color:var(--text-soft)}
+  .hist-note{font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.5}
+  .audio-note{font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5}
   .tr-tabs{display:flex;gap:6px;background:var(--bg3);border-radius:999px;padding:4px;margin-top:4px}
   .tr-tab{flex:1;padding:8px 10px;font-size:13px;font-weight:600;border:none;border-radius:999px;background:transparent;color:var(--text-soft);cursor:pointer;font-family:'Inter',sans-serif}
   .tr-tab.active{background:var(--purple);color:white}
@@ -464,9 +474,14 @@
     <button class="end-btn" onclick="endSession()" title="End session and get your lesson">⏹ End</button>
     <button class="plan-pill plan-free" id="planPill" onclick="showUpgrade()">Free</button>
   </div>
-  <button class="tr-bar" onclick="openTranslator()">
-    <span data-i18n="tr.bar">🌐 Translator &amp; live interpreter</span><span class="tr-bar-go">›</span>
-  </button>
+  <div class="bar-row">
+    <button class="tr-bar" onclick="openTranslator()">
+      <span data-i18n="tr.bar">🌐 Translator &amp; live interpreter</span><span class="tr-bar-go">›</span>
+    </button>
+    <button class="tr-bar" onclick="openLessonHistory()">
+      <span data-i18n="hist.bar">📚 My lessons</span><span class="tr-bar-go">›</span>
+    </button>
+  </div>
   <div class="avzone">
     <div class="avframe" id="avFrame"><img src="https://res.cloudinary.com/fajdj3ej/image/upload/v1785048699/IMG_3608_c5b1ch.png" style="width:90px;height:90px;border-radius:50%;object-fit:cover"/></div>
     <div class="voice-controls">
@@ -507,11 +522,24 @@
 <div class="modal-overlay" id="lessonModal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">📚 Today's Lesson</div>
+      <div class="modal-title" id="lessonModalTitle">📚 Today's Lesson</div>
       <button class="modal-close" onclick="closeLessonModal()" aria-label="Close">✕</button>
     </div>
     <div id="lessonContent">
       <div class="loading-lesson">⏳ Generating your lesson summary...</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="historyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" data-i18n="hist.title">📚 My lessons</div>
+      <button class="modal-close" onclick="closeLessonHistory()" aria-label="Close">✕</button>
+    </div>
+    <p class="hist-note" data-i18n="hist.note">Every lesson you finish is saved here: key phrases, corrections and homework. Open one any time to review it or print its PDF.</p>
+    <div id="historyContent">
+      <div class="loading-lesson">⏳</div>
     </div>
   </div>
 </div>
@@ -688,6 +716,19 @@
       'tr.submitting':'Traduciendo...',
       'tr.empty':'Escribe algo para traducir.',
       'tr.signinNeeded':'Inicia sesión para usar el traductor.',
+      'hist.bar':'📚 Mis lecciones',
+      'hist.title':'📚 Mis lecciones',
+      'hist.note':'Cada lección que terminas se guarda aquí: frases clave, correcciones y tarea. Ábrela cuando quieras para repasarla o imprimir su PDF.',
+      'hist.empty':'Aún no tienes lecciones guardadas. Termina una conversación con ⏹ End y aparecerá aquí.',
+      'hist.error':'No pudimos cargar tus lecciones. Inténtalo de nuevo.',
+      'hist.signin':'Inicia sesión para ver tus lecciones.',
+      'hist.corrections':'{n} correcciones',
+      'hist.phrases':'{n} frases',
+      'lesson.today':'📚 Lección de hoy',
+      'lesson.saved':'📚 Lección guardada',
+      'lesson.audioNote':'💡 Descarga tu audio ahora: no se guarda en tu cuenta. El texto de la lección sí queda en Mis lecciones.',
+      'lesson.audioSavedNote':'El audio nocturno no se guarda; se descarga al terminar cada sesión. Aquí tienes el guion para leerlo o imprimirlo.',
+      'lesson.back':'← Volver a mis lecciones',
       'tr.detected':'Detectado: {lang}',
       'tr.connError':'Error de conexión. Intenta de nuevo.',
       'tr.tabText':'✍️ Texto',
@@ -792,6 +833,19 @@
       'tr.submitting':'Translating...',
       'tr.empty':'Type something to translate.',
       'tr.signinNeeded':'Sign in to use the translator.',
+      'hist.bar':'📚 My lessons',
+      'hist.title':'📚 My lessons',
+      'hist.note':'Every lesson you finish is saved here: key phrases, corrections and homework. Open one any time to review it or print its PDF.',
+      'hist.empty':'No saved lessons yet. Finish a conversation with ⏹ End and it will show up here.',
+      'hist.error':'We could not load your lessons. Try again.',
+      'hist.signin':'Sign in to see your lessons.',
+      'hist.corrections':'{n} corrections',
+      'hist.phrases':'{n} phrases',
+      'lesson.today':"📚 Today's Lesson",
+      'lesson.saved':'📚 Saved lesson',
+      'lesson.audioNote':"💡 Download your audio now: it isn't stored in your account. The lesson text stays in My lessons.",
+      'lesson.audioSavedNote':'Night audio is not stored; you download it at the end of each session. Here is the script to read or print.',
+      'lesson.back':'← Back to my lessons',
       'tr.detected':'Detected: {lang}',
       'tr.connError':'Connection error. Try again.',
       'tr.tabText':'✍️ Text',
@@ -2269,6 +2323,7 @@
   async function endSession() {
     if (chatHistory.length < 4) { showToast('Practice a little longer first.'); return; }
 
+    document.getElementById('lessonModalTitle').textContent = t('lesson.today');
     document.getElementById('lessonModal').classList.add('show');
     document.getElementById('lessonContent').innerHTML = '<div class="loading-lesson">⏳ Building your lesson...</div>';
 
@@ -2303,7 +2358,10 @@
     }
   }
 
-  function renderLesson(lesson) {
+  // `saved` = reopened from My lessons. The night audio is never stored, so a
+  // saved lesson shows its script without the Play / Save buttons (each one
+  // would bill ElevenLabs again) and offers a way back to the list.
+  function renderLesson(lesson, saved = false) {
     currentLesson = lesson;
     const nightOk = planAllows('night');
     let html = `
@@ -2330,7 +2388,13 @@
 
     if (lesson.night_audio_script) {
       html += `<div class="lesson-section"><div class="lesson-section-title">🌙 Night Audio</div>`;
-      if (nightOk) {
+      if (nightOk && saved) {
+        html += `<div class="night-audio-box">
+            <div class="night-audio-title">🎧 Night audio script</div>
+            <div class="night-audio-text">${lesson.night_audio_script}</div>
+            <div class="audio-note">${t('lesson.audioSavedNote')}</div>
+          </div>`;
+      } else if (nightOk) {
         html += `<div class="night-audio-box">
             <div class="night-audio-title">🎧 Listen before sleep at 25% volume</div>
             <div class="night-audio-text">${lesson.night_audio_script}</div>
@@ -2338,6 +2402,7 @@
               <button class="night-btn play" onclick="playNightAudio()">▶ Play now</button>
               <button class="night-btn download" onclick="saveNightAudio()">💾 Save audio</button>
             </div>
+            <div class="audio-note">${t('lesson.audioNote')}</div>
           </div>`;
       } else {
         html += `<div class="locked-box">
@@ -2360,13 +2425,113 @@
     if (nightOk) {
       html += `<button class="night-btn play" style="width:100%;margin-bottom:8px;padding:12px;font-size:14px" onclick="generatePDF()">📄 Download PDF lesson</button>`;
     }
-    html += `<button class="end-session-btn" onclick="closeLessonModal()">Close and keep practicing</button>`;
+    if (saved) {
+      html += `<button class="end-session-btn" onclick="backToHistory()">${t('lesson.back')}</button>`;
+    } else {
+      html += `<button class="end-session-btn" onclick="closeLessonModal()">Close and keep practicing</button>`;
+    }
 
     document.getElementById('lessonContent').innerHTML = html;
   }
 
   function closeLessonModal() {
     document.getElementById('lessonModal').classList.remove('show');
+  }
+
+/* ------------------------------------------------------------
+   My lessons — every saved lesson, reopened in the same modal.
+   Reads the `lessons` table directly: RLS (lessons_select_own)
+   already limits each user to their own rows, so no function is needed.
+   ------------------------------------------------------------ */
+
+  let lessonHistory = [];
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+
+  function lessonDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+  }
+
+  async function openLessonHistory() {
+    if (!currentUser || !supabaseClient) {
+      showToast(t('hist.signin'));
+      document.getElementById('authScreen').style.display = 'flex';
+      return;
+    }
+    const box = document.getElementById('historyContent');
+    box.innerHTML = '<div class="loading-lesson">⏳</div>';
+    document.getElementById('historyModal').classList.add('show');
+
+    try {
+      const { data, error } = await supabaseClient
+        .from('lessons')
+        .select('id, created_at, tutor_name, title, topic, key_phrases, corrections, night_audio_script, homework')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      lessonHistory = data || [];
+      renderLessonHistory();
+    } catch (e) {
+      console.error('History load error:', e);
+      box.innerHTML = `<div class="loading-lesson">${t('hist.error')}</div>`;
+    }
+  }
+
+  function renderLessonHistory() {
+    const box = document.getElementById('historyContent');
+    if (!lessonHistory.length) {
+      box.innerHTML = `<div class="loading-lesson">${t('hist.empty')}</div>`;
+      return;
+    }
+    box.innerHTML = lessonHistory.map(row => {
+      const nCorr = Array.isArray(row.corrections) ? row.corrections.length : 0;
+      const nPhr  = Array.isArray(row.key_phrases) ? row.key_phrases.length : 0;
+      const meta = [
+        row.tutor_name ? `Tutor: ${escapeHtml(row.tutor_name)}` : '',
+        t('hist.phrases').replace('{n}', nPhr),
+        t('hist.corrections').replace('{n}', nCorr)
+      ].filter(Boolean).join(' · ');
+      return `<button class="hist-item" onclick="openSavedLesson('${row.id}')">
+          <div class="hist-date">📅 ${escapeHtml(lessonDate(row.created_at))}</div>
+          <div class="hist-title">${escapeHtml(row.title || row.topic || 'Practice session')}</div>
+          <div class="hist-meta">${meta}</div>
+        </button>`;
+    }).join('');
+  }
+
+  function closeLessonHistory() {
+    document.getElementById('historyModal').classList.remove('show');
+  }
+
+  function openSavedLesson(id) {
+    const row = lessonHistory.find(r => r.id === id);
+    if (!row) return;
+    const lesson = {
+      id: row.id,
+      date: lessonDate(row.created_at),
+      tutorName: row.tutor_name || '',
+      studentName: currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || '',
+      title: row.title,
+      topic: row.topic,
+      key_phrases: row.key_phrases || [],
+      corrections: row.corrections || [],
+      night_audio_script: row.night_audio_script,
+      homework: row.homework
+    };
+    closeLessonHistory();
+    document.getElementById('lessonModalTitle').textContent = t('lesson.saved');
+    document.getElementById('lessonModal').classList.add('show');
+    renderLesson(lesson, true);
+  }
+
+  function backToHistory() {
+    closeLessonModal();
+    document.getElementById('historyModal').classList.add('show');
   }
 
   async function fetchNightAudioBlob(script) {
